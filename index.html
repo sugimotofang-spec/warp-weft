@@ -1,0 +1,1222 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>經緯 Warp &amp; Weft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@500;700;900&display=swap">
+<style>
+/* Layout: a weaver's spec sheet on point paper (意匠紙). Left-aligned sections on one 1180px column;
+   the live fabric renders are the only loud element, everything around them stays quiet. */
+:root {
+  --paper: #EDEFE9;
+  --card: #F7F8F4;
+  --grid: #E0E5DD;
+  --ink: #161C2C;
+  --ink-2: #4A5266;
+  --ink-3: #737B8F;
+  --rule: #CDD5CB;
+  --rule-strong: #A3AFA2;
+  --indigo: #2B3C93;
+  --indigo-soft: rgba(43, 60, 147, 0.14);
+  --selvedge: #C23A2E;
+  --stage: #0A0D16;
+  --on-stage: #ECE9E0;
+  --on-stage-2: #A6ABBA;
+  --font-display: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --font-body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E121C; --card: #141927; --grid: #131826;
+    --ink: #E8E5DC; --ink-2: #A9AEBD; --ink-3: #7D8397;
+    --rule: #222A3B; --rule-strong: #34405A;
+    --indigo: #97A9FF; --indigo-soft: rgba(151, 169, 255, 0.16); --selvedge: #E25A4D;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0E121C; --card: #141927; --grid: #131826;
+  --ink: #E8E5DC; --ink-2: #A9AEBD; --ink-3: #7D8397;
+  --rule: #222A3B; --rule-strong: #34405A;
+  --indigo: #97A9FF; --indigo-soft: rgba(151, 169, 255, 0.16); --selvedge: #E25A4D;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 16px/1.7 var(--font-body); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; }
+canvas { display: block; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
+.eyebrow { font: 500 12px/1.4 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+
+/* selvedge: the finished edge of a woven fabric, with its red ID line */
+.selvedge { height: 12px; background:
+  linear-gradient(var(--selvedge), var(--selvedge)) 0 50% / 100% 2px no-repeat,
+  repeating-linear-gradient(90deg, var(--rule-strong) 0 1px, transparent 1px 5px); opacity: .9; }
+
+/* ---------- hero ---------- */
+.hero { position: relative; height: clamp(520px, 78vh, 800px); background: var(--stage); color: var(--on-stage); overflow: hidden; isolation: isolate; }
+.hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; }
+.hero::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(10,13,22,.55) 0%, rgba(10,13,22,0) 24%, rgba(10,13,22,0) 40%, rgba(10,13,22,.72) 62%, rgba(10,13,22,.92) 100%); }
+.hero-copy { position: absolute; left: 0; right: 0; bottom: 0; padding-block: 0 44px; display: grid; gap: 14px; }
+.hero .eyebrow { color: var(--on-stage-2); }
+.hero h1 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 26px; }
+.h1-zh { font: 900 clamp(84px, 15vw, 184px)/0.86 var(--font-display); letter-spacing: 0.04em; }
+.h1-en { font: 500 clamp(13px, 1.4vw, 16px)/1 var(--font-mono); letter-spacing: 0.32em; text-transform: uppercase; color: var(--on-stage-2); }
+.lede { max-width: 34em; font-size: clamp(16px, 1.6vw, 19px); color: var(--on-stage); }
+.live { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 400 12px/1.5 var(--font-mono); color: var(--on-stage-2); letter-spacing: .04em; }
+.live b { color: var(--on-stage); font-weight: 500; }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #F0A35E; margin-right: 8px; vertical-align: 1px; box-shadow: 0 0 10px #F0A35E; }
+.hero-top { position: absolute; top: 0; left: 0; right: 0; padding-block: 22px 0; display: flex; justify-content: space-between; gap: 16px; }
+.hero-top a { color: var(--on-stage-2); text-decoration: none; font: 500 12px/1.4 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
+.hero-top a:hover { color: var(--on-stage); }
+.hero-top nav { display: flex; gap: 20px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* ---------- sections ---------- */
+section { padding-block: 72px 80px; }
+.sec-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 22px; align-items: baseline; margin-bottom: 36px; }
+.sec-no { font: 500 13px/1 var(--font-mono); color: var(--selvedge); letter-spacing: .1em; }
+.sec-head h2 { font: 900 clamp(30px, 4vw, 46px)/1.15 var(--font-display); letter-spacing: .02em; }
+.sec-head p { grid-column: 2; max-width: 40em; color: var(--ink-2); margin-top: 8px; }
+
+/* ---------- lab ---------- */
+.lab { background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 16px 16px; background-position: -1px -1px; }
+.lab-grid { display: grid; grid-template-columns: minmax(0, 1.22fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.view { display: grid; gap: 18px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+.frame { position: relative; aspect-ratio: 4 / 3; max-width: 100%; background: var(--stage); border: 1px solid var(--rule-strong); cursor: crosshair; touch-action: none; }
+.frame canvas { width: 100%; height: 100%; }
+.frame .tag { position: absolute; left: 12px; top: 10px; right: 12px; font: 400 11px/1.5 var(--font-mono); color: var(--on-stage); text-shadow: 0 1px 6px rgba(0,0,0,.7); letter-spacing: .03em; pointer-events: none; }
+.scalebar { position: absolute; right: 14px; bottom: 12px; display: grid; justify-items: end; gap: 4px; font: 400 11px/1 var(--font-mono); color: var(--on-stage); text-shadow: 0 1px 6px rgba(0,0,0,.8); pointer-events: none; }
+.scalebar i { display: block; height: 6px; border: 2px solid var(--on-stage); border-top: 0; }
+.hint { position: absolute; left: 12px; bottom: 10px; font: 400 11px/1.4 var(--font-mono); color: var(--on-stage-2); pointer-events: none; }
+
+.readout { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 18px; align-items: center; background: var(--card); border: 1px solid var(--rule); padding: 18px 20px; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 18px; margin: 0; }
+.stats div { min-width: 0; }
+.stats dt { font: 500 11px/1.3 var(--font-mono); letter-spacing: .08em; color: var(--ink-3); text-transform: uppercase; }
+.stats dd { margin: 4px 0 0; font: 500 19px/1.15 var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stats dd small { font-size: 12px; color: var(--ink-2); font-weight: 400; margin-left: 3px; }
+.stats .big dd { font-size: 28px; color: var(--indigo); }
+.radar { width: 100%; height: auto; }
+.radar text { font: 400 10.5px var(--font-body); fill: var(--ink-2); }
+.readout .fine { grid-column: 1 / -1; font-size: 12px; color: var(--ink-3); }
+
+.controls { background: var(--card); border: 1px solid var(--rule-strong); display: grid; }
+.ctl { padding: 18px 20px; border-top: 1px solid var(--rule); display: grid; gap: 12px; min-width: 0; }
+.ctl:first-child { border-top: 0; }
+.ctl h3 { font: 500 12px/1.3 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); display: flex; justify-content: space-between; gap: 10px; }
+.ctl h3 span:last-child { letter-spacing: .04em; text-transform: none; color: var(--ink-2); }
+.presets { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.preset { display: grid; justify-items: center; gap: 6px; padding: 8px 4px 7px; background: transparent; border: 1px solid var(--rule); cursor: pointer; font-size: 12px; line-height: 1.2; color: var(--ink-2); }
+.preset canvas { width: 34px; height: 34px; }
+.preset:hover { border-color: var(--rule-strong); color: var(--ink); }
+.preset[aria-pressed="true"] { border-color: var(--indigo); color: var(--ink); box-shadow: inset 0 0 0 1px var(--indigo); background: var(--indigo-soft); }
+
+.draft-wrap { display: grid; gap: 10px; }
+#draft { width: 100%; touch-action: none; cursor: pointer; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--rule-strong); }
+.stepper span { font: 400 12px var(--font-mono); padding: 0 8px; color: var(--ink-2); }
+.stepper output { font: 500 13px var(--font-mono); min-width: 2ch; text-align: center; }
+.btn { background: transparent; border: 1px solid var(--rule-strong); padding: 5px 11px; cursor: pointer; font-size: 13px; line-height: 1.4; }
+.btn:hover { border-color: var(--ink-2); }
+.stepper .btn { border: 0; padding: 4px 10px; font-family: var(--font-mono); }
+.warn { font-size: 13px; color: var(--selvedge); }
+.note { font-size: 13px; color: var(--ink-3); }
+
+.yarn { display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 8px 10px; align-items: center; }
+.yarn > span { font-size: 13px; color: var(--ink-2); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25); cursor: pointer; padding: 0; }
+.chip[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--indigo); }
+input[type="color"] { width: 30px; height: 26px; padding: 0; border: 1px solid var(--rule-strong); background: none; cursor: pointer; }
+.seg { display: inline-flex; border: 1px solid var(--rule-strong); flex-wrap: wrap; }
+.seg button { background: transparent; border: 0; border-left: 1px solid var(--rule); padding: 5px 12px; cursor: pointer; font-size: 13px; }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+.sliders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; }
+.sl { display: grid; gap: 4px; min-width: 0; }
+.sl label { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.sl output { font: 500 13px var(--font-mono); color: var(--ink); }
+input[type="range"] { width: 100%; accent-color: var(--indigo); }
+
+.jq { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+.switch { position: relative; width: 44px; height: 24px; border: 1px solid var(--rule-strong); border-radius: 12px; background: transparent; cursor: pointer; padding: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink-3); transition: transform .2s, background .2s; }
+.switch[aria-checked="true"] { background: var(--indigo); border-color: var(--indigo); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--card); }
+.jq input[type="text"] { width: 100%; padding: 6px 10px; border: 1px solid var(--rule-strong); background: var(--paper); font-size: 15px; }
+
+/* ---------- drape ---------- */
+.stage { position: relative; background: var(--stage); border: 1px solid var(--rule-strong); aspect-ratio: 16 / 8; max-width: 100%; overflow: hidden; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#drapeGL { touch-action: none; cursor: grab; }
+#drapeGL.grabbing { cursor: grabbing; }
+#drapeHud { pointer-events: none; }
+.stage-ui { position: absolute; left: 14px; right: 14px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; pointer-events: none; }
+.stage-ui > * { pointer-events: auto; }
+.stage .seg { border-color: rgba(236,233,224,.35); background: rgba(10,13,22,.55); }
+.stage .seg button { color: var(--on-stage); border-left-color: rgba(236,233,224,.2); }
+.stage .seg button[aria-pressed="true"] { background: var(--on-stage); color: var(--stage); }
+.stage .hint { position: static; }
+
+/* ---------- anatomy ---------- */
+.anatomy { padding-block: 0; }
+.anat-track { position: relative; }
+.anat-sticky { padding-block: 72px 56px; }
+.anat-sticky > .wrap { width: 100%; }
+.anat-body { display: grid; gap: 14px; }
+.shoe-box { min-width: 0; }
+#shoe { display: block; width: 100%; height: auto; overflow: visible; }
+.part-detail { min-height: 1.7em; font-size: 15px; line-height: 1.6; color: var(--ink-2); }
+.part-detail b { color: var(--ink); }
+#shoe .part { transition: opacity .25s; }
+#shoe.focusing .part:not(.on) { opacity: .28; }
+#shoe .mk circle { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+#shoe .mk text { font: 600 13px var(--font-mono); fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
+#shoe .mk line { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+#shoe .ground { fill: var(--rule-strong); opacity: .5; }
+#shoe .outline { stroke: var(--ink); stroke-opacity: .55; stroke-width: 1.4; }
+.legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0 18px; border-top: 1px solid var(--rule); }
+.legend li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 0 8px; padding: 7px 4px; border-bottom: 1px solid var(--rule); cursor: default; min-width: 0; }
+.legend li.on { background: var(--indigo-soft); }
+.legend .n { font: 600 12px/1.9 var(--font-mono); color: var(--selvedge); grid-row: span 2; }
+.legend b { font-weight: 700; font-size: 14px; line-height: 1.5; }
+.legend b small { font: 400 11px var(--font-mono); color: var(--ink-3); margin-left: 6px; letter-spacing: .04em; }
+.legend span { font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
+.anat-ui { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-top: 10px; }
+
+@media (min-width: 980px) and (min-height: 700px) {
+  .anat-track.scrolly { height: 250vh; }
+  .anat-track.scrolly .anat-sticky { position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; display: flex; flex-direction: column; justify-content: center; padding-block: 24px; }
+  .anat-track.scrolly .sec-head { margin-bottom: 12px; }
+  .anat-track.scrolly .shoe-box { height: calc(100vh - 400px); min-height: 260px; }
+  .anat-track.scrolly #shoe { height: 100%; }
+}
+
+/* ---------- steps ---------- */
+.steps { border-top: 1px solid var(--rule); }
+.steps-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 40px; align-items: end; }
+.counter { font: 700 clamp(64px, 11vw, 136px)/0.9 var(--font-mono); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.counter small { font: 900 clamp(22px, 3vw, 34px)/1 var(--font-display); letter-spacing: 0; margin-left: 10px; color: var(--ink-2); }
+blockquote { margin: 0; display: grid; gap: 16px; }
+blockquote p { font: 700 clamp(22px, 2.6vw, 30px)/1.6 var(--font-display); text-wrap: balance; }
+cite { font: 400 13px/1.5 var(--font-mono); font-style: normal; color: var(--ink-3); }
+.film { border-top: 1px solid var(--rule); }
+.film-frame { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: var(--stage); border: 1px solid var(--rule-strong); }
+.film-frame video { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: var(--stage); }
+.film-frame .nofilm { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--on-stage-2); font-size: 14px; }
+.film-notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+.film-notes div { border-top: 1px solid var(--rule); padding-top: 10px; min-width: 0; }
+.film-notes b { display: block; font: 500 12px/1.4 var(--font-mono); letter-spacing: .1em; color: var(--ink-3); text-transform: uppercase; }
+.film-notes span { font-size: 14px; color: var(--ink-2); }
+footer { padding-block: 28px 48px; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 13px; }
+footer .wrap { display: grid; gap: 6px; }
+
+.nogl-msg { position: absolute; inset: 0; display: none; place-items: center; text-align: center; padding: 24px; color: var(--on-stage-2); font-size: 14px; }
+.no-gl .nogl-msg { display: grid; }
+
+@media (max-width: 1099px) { .legend { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 979px) {
+  .lab-grid { grid-template-columns: minmax(0, 1fr); }
+  .view { position: static; }
+  .steps-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .film-notes { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}
+@media (max-width: 620px) {
+  .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .presets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .readout { grid-template-columns: minmax(0, 1fr); }
+  .radar { max-width: 240px; justify-self: center; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sliders { grid-template-columns: minmax(0, 1fr); }
+  .stage { aspect-ratio: 4 / 3; }
+  .sec-head { grid-template-columns: minmax(0, 1fr); }
+  .sec-head p { grid-column: 1; }
+  .hero-top nav { display: none; }
+  section { padding-block: 56px 60px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .switch::after, #shoe .part { transition: none; }
+}
+</style>
+
+<header class="hero" id="top">
+  <canvas id="heroGL" aria-label="即時運算的織布機：丹寧 3/1 斜紋，梭子帶著緯紗一緯一緯織進來"></canvas>
+  <div class="nogl-msg">這個瀏覽器沒有開啟 WebGL2，看不到即時織布。換用新版 Chrome、Edge 或 Safari 即可。</div>
+  <div class="wrap hero-top">
+    <a href="#top">經緯 · Warp &amp; Weft</a>
+    <nav aria-label="章節">
+      <a href="#lab">組織實驗室</a><a href="#drape">懸垂</a><a href="#anatomy">鞋面解剖</a><a href="#steps">兩萬步</a><a href="#film">影片</a>
+    </nav>
+  </div>
+  <div class="wrap hero-copy">
+    <p class="eyebrow">一根紗如何變成一雙鞋</p>
+    <h1><span class="h1-zh">經緯</span><span class="h1-en">Warp &amp; Weft</span></h1>
+    <p class="lede">這是一台即時運算的織布機。每一根紗的屈曲、撚度和光澤，都是從組織圖算出來的。移動滑鼠就是移動燈。</p>
+    <p class="live"><span><span class="dot"></span><b>織造中</b></span><span>3/1 右斜紋 · 靛藍經 × 本白緯（丹寧）</span><span>已織 <b id="heroPicks">0</b> 緯</span></p>
+  </div>
+</header>
+<div class="selvedge" aria-hidden="true"></div>
+
+<section class="lab" id="lab">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-no">02</span>
+      <h2>組織實驗室</h2>
+      <p>點組織圖上的格子、換紗線顏色、調丹尼和密度，左邊的布會即時重織。克重、覆蓋率和浮長都用紡織公式現算。</p>
+    </div>
+    <div class="lab-grid">
+      <div class="view">
+        <div class="frame" id="labFrame">
+          <canvas id="labGL" aria-label="即時渲染的布面"></canvas>
+          <div class="nogl-msg">需要 WebGL2 才能渲染布面。</div>
+          <div class="tag" id="viewTag"></div>
+          <div class="scalebar" aria-hidden="true"><span id="scaleLabel">1 mm</span><i id="scaleBar"></i></div>
+          <div class="hint">移動游標 = 打光</div>
+        </div>
+        <div class="readout">
+          <dl class="stats">
+            <div class="big"><dt>克重</dt><dd id="oGsm">–</dd></div>
+            <div class="big"><dt>盎司</dt><dd id="oOz">–</dd></div>
+            <div><dt>覆蓋率</dt><dd id="oCover">–</dd></div>
+            <div><dt>平均浮長 經/緯</dt><dd id="oFloat">–</dd></div>
+            <div><dt>組織循環</dt><dd id="oRepeat">–</dd></div>
+            <div><dt>紗徑 經/緯</dt><dd id="oDia">–</dd></div>
+          </dl>
+          <svg class="radar" id="radar" viewBox="0 0 220 200" role="img" aria-label="結構指標雷達圖"></svg>
+          <p class="fine">聚酯長纖估算：密度 1.38 g/cm³、填充係數 0.75、屈曲率由交織密度推算。雷達圖由組織圖推算，屬示意。</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="ctl">
+          <h3><span>布種</span><span id="presetName"></span></h3>
+          <div class="presets" id="presets"></div>
+        </div>
+        <div class="ctl">
+          <h3><span>組織圖 · 意匠</span><span>黑格＝經紗浮在上</span></h3>
+          <div class="draft-wrap">
+            <canvas id="draft" tabindex="0" aria-label="組織圖。方向鍵移動，空白鍵切換經組織點"></canvas>
+            <div class="row">
+              <span class="stepper"><span>經循環</span><button class="btn" data-step="w" data-d="-1" aria-label="經循環減一">−</button><output id="oW">2</output><button class="btn" data-step="w" data-d="1" aria-label="經循環加一">+</button></span>
+              <span class="stepper"><span>緯循環</span><button class="btn" data-step="h" data-d="-1" aria-label="緯循環減一">−</button><output id="oH">2</output><button class="btn" data-step="h" data-d="1" aria-label="緯循環加一">+</button></span>
+              <button class="btn" id="invertBtn">正反面互換</button>
+            </div>
+            <p class="warn" id="draftWarn" hidden></p>
+            <p class="note" id="draftNote">紅線框起來的是一個組織循環，旁邊三格是它的重複。</p>
+          </div>
+        </div>
+        <div class="ctl">
+          <h3><span>紗線</span><span id="orderName"></span></h3>
+          <div class="yarn">
+            <span>經紗</span><div class="chips" id="chipsA"></div>
+            <span>緯紗</span><div class="chips" id="chipsB"></div>
+            <span>色序</span>
+            <div class="seg" id="orderSeg" role="group" aria-label="色序">
+              <button data-order="solid">單色</button><button data-order="44">4:4 千鳥</button><button data-order="ripstop">格子強化紗</button>
+            </div>
+          </div>
+        </div>
+        <div class="ctl">
+          <h3><span>規格</span><span id="classLabel"></span></h3>
+          <div class="sliders">
+            <div class="sl"><label for="sWarpDen">經紗丹尼 <output id="vWarpDen"></output></label><input type="range" id="sWarpDen" min="30" max="900" step="10"></div>
+            <div class="sl"><label for="sWeftDen">緯紗丹尼 <output id="vWeftDen"></output></label><input type="range" id="sWeftDen" min="30" max="900" step="10"></div>
+            <div class="sl"><label for="sEpi">經密 根/吋 <output id="vEpi"></output></label><input type="range" id="sEpi" min="20" max="260" step="1"></div>
+            <div class="sl"><label for="sPpi">緯密 根/吋 <output id="vPpi"></output></label><input type="range" id="sPpi" min="20" max="200" step="1"></div>
+            <div class="sl" style="grid-column: 1 / -1"><label for="sZoom">放大倍率 <output id="vZoom"></output></label><input type="range" id="sZoom" min="0" max="100" step="1"></div>
+          </div>
+        </div>
+        <div class="ctl">
+          <h3><span>提花文字</span><span>緞紋提花 Damask</span></h3>
+          <div class="jq">
+            <button class="switch" id="jqSwitch" role="switch" aria-checked="false" aria-label="開啟提花文字"></button>
+            <input type="text" id="jqText" maxlength="10" value="SUGI" aria-label="要織進布裡的文字">
+          </div>
+          <p class="note">字用經面五枚緞、底用緯面五枚緞，靠光澤和顏色差把字織出來。這是真正的提花組織，不是印上去的。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="selvedge" aria-hidden="true"></div>
+
+<section id="drape">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-no">03</span>
+      <h2>懸垂</h2>
+      <p>同一塊布掛起來。這裡用的是你在實驗室織的那塊，貼圖每次改動都會重新織一次。抓住布料拖拉，或打開風。</p>
+    </div>
+    <div class="stage">
+      <canvas id="drapeGL" aria-label="可拖拉的布料模擬"></canvas>
+      <canvas id="drapeHud" aria-hidden="true"></canvas>
+      <div class="nogl-msg">需要 WebGL2 才能做布料模擬。</div>
+      <div class="stage-ui">
+        <div class="seg" id="pinSeg" role="group" aria-label="掛法">
+          <button data-pin="rail" aria-pressed="true">整排夾</button><button data-pin="corners">兩角</button><button data-pin="one">單角</button>
+        </div>
+        <span class="hint">拖曳布料</span>
+        <div class="seg" role="group" aria-label="環境">
+          <button id="windBtn" aria-pressed="true">風</button><button id="resetBtn">重掛</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="selvedge" aria-hidden="true"></div>
+
+<section class="anatomy" id="anatomy">
+  <div class="anat-track" id="anatTrack">
+    <div class="anat-sticky">
+      <div class="wrap">
+        <div class="sec-head">
+          <span class="sec-no">04</span>
+          <h2>鞋面解剖</h2>
+          <p>一雙跑鞋大約由十二個部件組成。往下捲，鞋子會拆開再組回去；鞋面用的就是你剛才織的布。</p>
+        </div>
+        <div class="anat-body">
+          <div class="shoe-box"><svg id="shoe" viewBox="-60 -84 1130 612" role="img" aria-label="跑鞋側視爆炸圖"></svg></div>
+          <p class="part-detail" id="partDetail" aria-live="polite">游標移到鞋子或下方清單，看每個部件用什麼材料。</p>
+          <ol class="legend" id="legend"></ol>
+        </div>
+        <div class="anat-ui">
+          <button class="btn" id="explodeBtn" aria-pressed="false">拆開</button>
+          <span class="note" id="anatNote">鞋面＝實驗室目前的布。</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="steps" id="steps">
+  <div class="wrap steps-grid">
+    <div>
+      <p class="sec-no" style="margin-bottom:14px">05</p>
+      <p class="counter" aria-label="兩萬步"><span id="stepNum">20,000</span><small>步</small></p>
+    </div>
+    <blockquote>
+      <p>好的材料設計，是走完兩萬步之後，你才會真正感謝它的存在。</p>
+      <cite>Fang Sugimoto ·〈五天十萬步，四雙鞋，零水泡〉· 2026</cite>
+    </blockquote>
+  </div>
+</section>
+
+<section class="film" id="film">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-no">06</span>
+      <h2>三十秒版本</h2>
+      <p>同一支著色器逐格算出來的短片：一根紗、經、緯、組織、提花、裁斷、成鞋。配樂也是程式合成的，梭子往哪邊跑，打緯聲就從哪一邊出來。</p>
+    </div>
+    <div class="film-frame">
+      <video id="filmVideo" controls playsinline preload="metadata" poster="film-poster.jpg" src="warp-weft-30s.mp4" aria-label="經緯 30 秒影片"></video>
+      <p class="nofilm" id="noFilm" hidden>影片沒有載入成功。1080p 原始檔在桌面「經緯_WarpWeft」資料夾：經緯_WarpWeft_30s.mp4。</p>
+    </div>
+    <div class="film-notes">
+      <div><b>畫面</b><span>1920 × 1080、30 fps，900 格全部由 WebGL 著色器即時運算後逐格擷取。</span></div>
+      <div><b>聲音</b><span>Karplus-Strong 撥弦當作紗線，經紗散開時聲音也往左右展開；梭子的打緯聲隨方向左右聲道切換。</span></div>
+      <div><b>字</b><span>「為兩萬步而織」是緞紋提花：字用經面緞、底用緯面緞織出來。</span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>物性數值以通用紡織公式估算，屬示意，不代表任何公司或產品的規格。</p>
+    <p class="mono">經緯 Warp &amp; Weft · WebGL2 紗線級渲染、Verlet 布料模擬 · made with Claude for Fang Sugimoto</p>
+  </div>
+</footer>
+
+<script src="fabric-core.js"></script>
+<script>
+(() => {
+  'use strict';
+  const FC = window.FabricCore;
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const clamp = FC.clamp, lerp = (a, b, t) => a + (b - a) * t;
+  const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const hasGL = FC.FabricGL.supported();
+  if (!hasGL) document.documentElement.classList.add('no-gl');
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const STAGE = [10 / 255, 13 / 255, 22 / 255];
+
+  function visibility(el, cb) {
+    const io = new IntersectionObserver(es => es.forEach(e => cb(e.isIntersecting)), { rootMargin: '120px' });
+    io.observe(el);
+  }
+  function fitCanvas(cv, maxDpr) {
+    const r = cv.getBoundingClientRect(), dpr = Math.min(maxDpr, window.devicePixelRatio || 1);
+    const w = Math.max(2, Math.round(r.width * dpr)), h = Math.max(2, Math.round(r.height * dpr));
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; return true; }
+    return false;
+  }
+
+  /* =========================================================== hero loom */
+  const DENIM = ['#1D2B57', '#21305E', '#1A2650', '#243461', '#1F2D5A', '#22315C', '#1C2954', '#202F5B'];
+  function initHero() {
+    const cv = $('#heroGL'), hero = $('#top');
+    let fab;
+    try { fab = new FC.FabricGL(cv); } catch (e) { document.documentElement.classList.add('no-gl'); return; }
+    fab.setPattern('A', FC.weave('twill31'));
+    fab.setColors('A', DENIM, ['#ECE8DE']);
+    const rate = 3.2, t0 = performance.now();
+    let light = [0.66, 0.58], target = [0.66, 0.58], pointer = false, running = true, raf = 0, lastPicks = -1;
+    hero.addEventListener('pointermove', e => {
+      const r = hero.getBoundingClientRect();
+      target = [(e.clientX - r.left) / r.width, 1 - (e.clientY - r.top) / r.height]; pointer = true;
+    });
+    hero.addEventListener('pointerleave', () => { pointer = false; });
+    function frame(now) {
+      fitCanvas(cv, 1.5);
+      const W = cv.width, H = cv.height;
+      const t = reduce ? 4 : (now - t0) / 1000;
+      if (!pointer && !reduce) target = [0.55 + 0.28 * Math.sin(t * 0.21), 0.6 + 0.14 * Math.cos(t * 0.17)];
+      light = [lerp(light[0], target[0], 0.08), lerp(light[1], target[1], 0.08)];
+      const cam = { center: [0, 0], cellPx: Math.max(16, H / 30), tilt: 0.9, roll: 0 };
+      const fellY = H * 0.1;
+      const rel = FC.project(0, fellY, cam, [W, H]);
+      const L = FC.project(-W / 2, fellY, cam, [W, H]), R = FC.project(W / 2, fellY, cam, [W, H]);
+      const P = 1000 + rate * t, fp = Math.floor(P), frac = P - fp, dir = fp % 2 === 0 ? 1 : -1;
+      const x0 = L[0] - 3, x1 = R[0] + 3;
+      const sx = dir > 0 ? lerp(x0, x1, frac) : lerp(x1, x0, frac);
+      fab.render({
+        center: [0.5, P - rel[1]], cellPx: cam.cellPx, tilt: cam.tilt, roll: -0.08,
+        progress: P, shuttle: [sx, dir], shuttleGlow: reduce ? 0 : 0.85, shed: 1,
+        warpW: 0.41, weftW: 0.39, crimp: 0.24, light: [light[0] * W, light[1] * H], lightH: 16,
+        fog: 0.42, bg: STAGE, exposure: 1.55, aa: 1,
+      });
+      const woven = Math.floor(rate * t);
+      if (woven !== lastPicks) { lastPicks = woven; $('#heroPicks').textContent = woven.toLocaleString('en-US'); }
+      if (running && !reduce) raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+    visibility(hero, vis => {
+      if (vis && !running) { running = true; raf = requestAnimationFrame(frame); }
+      else if (!vis) { running = false; cancelAnimationFrame(raf); }
+    });
+    if (reduce) hero.addEventListener('pointermove', () => requestAnimationFrame(frame));
+    addEventListener('resize', () => requestAnimationFrame(frame));
+  }
+
+  /* =========================================================== lab state */
+  const DYES = [
+    ['#E4DED0', '坯布'], ['#F3F2ED', '漂白'], ['#2F3E7A', '靛藍'], ['#1B2547', '深靛'], ['#26272C', '炭黑'],
+    ['#9A3B2C', '赭紅'], ['#5A6340', '橄欖'], ['#C9A04A', '香檳金'], ['#9DB4D8', '霧藍'], ['#6B2433', '酒紅'],
+  ];
+  const PRESETS = [
+    { id: 'canvas4', zh: '4 oz 帆布', weave: 'plain', warpDen: 300, weftDen: 300, epi: 54, ppi: 42, a: '#2F3E7A', b: '#E4DED0', order: 'solid' },
+    { id: 'plain', zh: '平紋', weave: 'plain', warpDen: 150, weftDen: 150, epi: 110, ppi: 90, a: '#9A3B2C', b: '#E4DED0', order: 'solid' },
+    { id: 'basket', zh: '方平', weave: 'basket', warpDen: 200, weftDen: 200, epi: 84, ppi: 76, a: '#1B2547', b: '#E4DED0', order: 'solid' },
+    { id: 'twill22', zh: '2/2 斜紋', weave: 'twill22', warpDen: 200, weftDen: 200, epi: 96, ppi: 80, a: '#6B2433', b: '#E4DED0', order: 'solid' },
+    { id: 'twill31', zh: '3/1 丹寧', weave: 'twill31', warpDen: 300, weftDen: 450, epi: 72, ppi: 46, a: '#1D2B57', b: '#ECE8DE', order: 'solid' },
+    { id: 'satin5', zh: '五枚緞', weave: 'satin5', warpDen: 75, weftDen: 150, epi: 220, ppi: 95, a: '#C9A04A', b: '#1B2547', order: 'solid' },
+    { id: 'satin8', zh: '八枚緞', weave: 'satin8', warpDen: 50, weftDen: 150, epi: 250, ppi: 90, a: '#9DB4D8', b: '#141826', order: 'solid' },
+    { id: 'herringbone', zh: '人字紋', weave: 'herringbone', warpDen: 300, weftDen: 300, epi: 70, ppi: 60, a: '#26272C', b: '#E4DED0', order: 'solid' },
+    { id: 'houndstooth', zh: '千鳥格', weave: 'houndstooth', warpDen: 300, weftDen: 300, epi: 64, ppi: 60, a: '#26272C', b: '#F3F2ED', order: '44' },
+    { id: 'ripstop', zh: '格子防裂', weave: 'ripstop', warpDen: 70, weftDen: 70, epi: 150, ppi: 130, a: '#5A6340', b: '#5A6340', order: 'ripstop' },
+  ];
+  const S = { preset: 'canvas4', pat: FC.weave('plain'), a: '', b: '', order: 'solid', warpDen: 300, weftDen: 300, epi: 54, ppi: 42, zoom: 50, jq: false, jqText: 'SUGI' };
+  const listeners = [];
+  const onChange = fn => listeners.push(fn);
+  let jqPat = null;
+
+  function applyPreset(id) {
+    const p = PRESETS.find(x => x.id === id);
+    Object.assign(S, { preset: id, pat: FC.weave(p.weave), a: p.a, b: p.b, order: p.order, warpDen: p.warpDen, weftDen: p.weftDen, epi: p.epi, ppi: p.ppi, zoom: 50 });
+    syncControls(); changed();
+  }
+  function activePattern() { return S.jq && jqPat ? jqPat : S.pat; }
+  function buildJacquard() {
+    const text = (S.jqText || '').trim() || '經緯';
+    const cjk = /[㐀-鿿]/.test(text);
+    const H = cjk ? 55 : 40;
+    const mw = FC.measureJacquard(text, H);
+    const W = clamp(Math.ceil((mw + H * 0.5) / 5) * 5, 40, 260);
+    jqPat = FC.jacquard(text, W, H, { fill: cjk ? 0.7 : 0.62 });
+  }
+  function rebuildJacquard() {
+    if (!S.jq) return;
+    const text = (S.jqText || '').trim() || '經緯';
+    buildJacquard(); changed();
+    if (document.fonts && document.fonts.load) document.fonts.load('900 40px "Noto Sans TC"', text).then(() => { buildJacquard(); changed(); }).catch(() => {});
+  }
+
+  let raf = 0;
+  function changed() { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => listeners.forEach(fn => fn(S))); }
+
+  /* ---------- derived ---------- */
+  function derive() {
+    const base = S.jq ? FC.weave('satin5') : S.pat;
+    const st = FC.weaveStats(base);
+    const sp = FC.fabricSpec({ warpDen: S.warpDen, weftDen: S.weftDen, epi: S.epi, ppi: S.ppi, interlace: st.interlace });
+    const colors = S.jq ? { warp: [S.a], weft: [S.b] } : FC.colorOrder(S.order, S.a, S.b);
+    return { st, sp, colors };
+  }
+  function fovInches() {
+    const pat = activePattern();
+    const ends = S.jq ? pat.w * 1.08 : 30;
+    const base = ends / S.epi;
+    return base * Math.pow(2, (50 - S.zoom) / 50 * 1.6);
+  }
+
+  /* ---------- lab renderer ---------- */
+  function initLab() {
+    const cv = $('#labGL'), frame = $('#labFrame');
+    let fab = null;
+    try { fab = new FC.FabricGL(cv, { preserve: true }); } catch (e) { document.documentElement.classList.add('no-gl'); }
+    let light = null, lastKey = '';
+    function render() {
+      fitCanvas(cv, 2);
+      const W = cv.width, H = cv.height;
+      const { st, sp, colors } = derive();
+      const pat = activePattern();
+      const key = [S.preset, S.jq, S.jqText, S.order, S.a, S.b, pat.w, pat.h, Array.from(pat.cells).join('')].join('|');
+      if (fab && key !== lastKey) { fab.setPattern('A', pat); fab.setColors('A', colors.warp, colors.weft); lastKey = key; }
+      const fov = fovInches();
+      const cellPx = W / (fov * S.epi);
+      if (fab) fab.render({
+        center: [pat.w / 2 + 0.01, pat.h / 2 + 0.01], cellPx, aspect: S.epi / S.ppi,
+        warpW: sp.warpW, weftW: sp.weftW, crimp: 0.12 + 0.14 * st.interlace,
+        light: light || [W * 0.28, H * 0.78], lightH: 9 + 30 / Math.max(cellPx / 10, 0.5) * 0.2,
+        bg: STAGE, exposure: 1.5, aa: 2, spec: 1,
+      });
+      // scale bar: physical mm on screen
+      const cssW = cv.getBoundingClientRect().width;
+      const pxPerMm = cssW / (fov * 25.4);
+      let mm = 1;
+      [0.5, 1, 2, 5, 10].forEach(v => { if (v * pxPerMm < 140) mm = v; });
+      $('#scaleBar').style.width = (mm * pxPerMm).toFixed(1) + 'px';
+      $('#scaleLabel').textContent = mm + ' mm';
+      const name = S.jq ? '緞紋提花「' + (S.jqText || '經緯') + '」' : presetLabel();
+      $('#viewTag').textContent = `${name} · ${S.epi} × ${S.ppi} 根/吋 · ${S.warpDen}D × ${S.weftDen}D · 視野 ${(fov * 25.4).toFixed(1)} mm`;
+    }
+    onChange(render);
+    frame.addEventListener('pointermove', e => {
+      const r = cv.getBoundingClientRect(), k = cv.width / r.width;
+      light = [(e.clientX - r.left) * k, (r.height - (e.clientY - r.top)) * k];
+      render();
+    });
+    frame.addEventListener('pointerleave', () => { light = null; render(); });
+    addEventListener('resize', render);
+    return { canvas: cv };
+  }
+  function presetLabel() {
+    const p = PRESETS.find(x => x.id === S.preset);
+    return p ? p.zh : '自訂組織';
+  }
+
+  /* ---------- readout ---------- */
+  function initReadout() {
+    const axes = ['結構穩定', '光澤', '覆蓋', '透氣', '柔軟懸垂'];
+    const svg = $('#radar'), cx = 110, cy = 104, R = 70;
+    const ang = i => -Math.PI / 2 + i * 2 * Math.PI / 5;
+    let g = '';
+    [0.25, 0.5, 0.75, 1].forEach(f => {
+      g += `<polygon points="${axes.map((_, i) => [cx + Math.cos(ang(i)) * R * f, cy + Math.sin(ang(i)) * R * f].map(v => v.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="var(--rule-strong)" stroke-width="${f === 1 ? 1 : 0.6}"/>`;
+    });
+    axes.forEach((a, i) => {
+      const x = cx + Math.cos(ang(i)) * (R + 16), y = cy + Math.sin(ang(i)) * (R + 14);
+      g += `<line x1="${cx}" y1="${cy}" x2="${(cx + Math.cos(ang(i)) * R).toFixed(1)}" y2="${(cy + Math.sin(ang(i)) * R).toFixed(1)}" stroke="var(--rule)" stroke-width="0.8"/>`;
+      g += `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="${Math.abs(Math.cos(ang(i))) < 0.2 ? 'middle' : Math.cos(ang(i)) > 0 ? 'start' : 'end'}">${a}</text>`;
+    });
+    g += '<polygon id="radarPoly" fill="var(--indigo-soft)" stroke="var(--indigo)" stroke-width="1.6" stroke-linejoin="round"/>';
+    g += '<g id="radarDots"></g>';
+    svg.innerHTML = g;
+    onChange(() => {
+      const { st, sp } = derive();
+      $('#oGsm').innerHTML = `${Math.round(sp.gsm)}<small>g/m²</small>`;
+      $('#oOz').innerHTML = `${sp.oz.toFixed(1)}<small>oz/yd²</small>`;
+      $('#oCover').innerHTML = `${Math.round(sp.cover * 100)}<small>%</small>`;
+      $('#oFloat').innerHTML = `${st.warpFloat.toFixed(1)}<small>/</small> ${st.weftFloat.toFixed(1)}`;
+      const pat = activePattern();
+      $('#oRepeat').innerHTML = `${pat.w}<small>×</small> ${pat.h}`;
+      $('#oDia').innerHTML = `${sp.dWarp.toFixed(2)}<small>/</small> ${sp.dWeft.toFixed(2)}<small>mm</small>`;
+      $('#classLabel').textContent = sp.oz < 3 ? '輕薄' : sp.oz < 7 ? '中量' : '厚重';
+      const avgFloat = (st.warpFloat + st.weftFloat) / 2;
+      const vals = [
+        30 + 68 * st.interlace,
+        12 + 84 * clamp((avgFloat - 1) / 4, 0, 1),
+        sp.cover * 100,
+        clamp((1 - sp.cover) / 0.55, 0, 1) * 92 + 6,
+        clamp(100 - st.interlace * 42 - clamp(sp.gsm / 420, 0, 1) * 52, 6, 98),
+      ];
+      const pts = vals.map((v, i) => [cx + Math.cos(ang(i)) * R * v / 100, cy + Math.sin(ang(i)) * R * v / 100]);
+      $('#radarPoly').setAttribute('points', pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' '));
+      $('#radarDots').innerHTML = pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--indigo)"/>`).join('');
+      svg.setAttribute('aria-label', '結構指標：' + axes.map((a, i) => a + ' ' + Math.round(vals[i])).join('、'));
+    });
+  }
+
+  /* ---------- presets + draft ---------- */
+  function drawDraftIcon(cv, pat) {
+    const dpr = Math.min(2, devicePixelRatio || 1), n = 8, s = 34;
+    cv.width = s * dpr; cv.height = s * dpr;
+    const c = cv.getContext('2d'); c.scale(dpr, dpr);
+    const cell = s / n;
+    c.fillStyle = css('--card'); c.fillRect(0, 0, s, s);
+    c.fillStyle = css('--ink');
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      if (pat.cells[(y % pat.h) * pat.w + (x % pat.w)]) c.fillRect(x * cell, (n - 1 - y) * cell, cell, cell);
+    }
+    c.strokeStyle = css('--rule-strong'); c.lineWidth = 0.5;
+    for (let i = 0; i <= n; i++) { c.beginPath(); c.moveTo(i * cell, 0); c.lineTo(i * cell, s); c.moveTo(0, i * cell); c.lineTo(s, i * cell); c.stroke(); }
+  }
+  function initPresets() {
+    const box = $('#presets');
+    PRESETS.forEach(p => {
+      const b = document.createElement('button');
+      b.className = 'preset'; b.dataset.id = p.id; b.setAttribute('aria-pressed', 'false');
+      b.innerHTML = '<canvas aria-hidden="true"></canvas><span>' + p.zh + '</span>';
+      b.addEventListener('click', () => { S.jq = false; $('#jqSwitch').setAttribute('aria-checked', 'false'); applyPreset(p.id); });
+      box.appendChild(b);
+    });
+    const paint = () => $$('.preset').forEach(b => drawDraftIcon(b.querySelector('canvas'), FC.weave(PRESETS.find(p => p.id === b.dataset.id).weave)));
+    paint();
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { paint(); changed(); });
+    new MutationObserver(() => { paint(); changed(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    onChange(() => {
+      $$('.preset').forEach(b => b.setAttribute('aria-pressed', String(!S.jq && b.dataset.id === S.preset)));
+      $('#presetName').textContent = S.jq ? '提花' : presetLabel();
+    });
+  }
+
+  function initDraft() {
+    const cv = $('#draft');
+    let cell = 20, ox = 0, oy = 0, cur = [0, 0], painting = -1, showCursor = false;
+    function geom() {
+      const pat = S.jq ? FC.weave('satin5') : S.pat;
+      const cssW = cv.parentElement.getBoundingClientRect().width;
+      const cols = pat.w * 2;
+      cell = Math.floor(clamp((cssW - 30) / cols, 9, 32));
+      ox = 26; oy = 6;
+      return { pat, w: ox + cols * cell + 4, h: oy + pat.h * 2 * cell + 22 };
+    }
+    function draw() {
+      const g = geom(), pat = g.pat, dpr = Math.min(2, devicePixelRatio || 1);
+      cv.style.height = g.h + 'px'; cv.style.width = g.w + 'px';
+      cv.width = Math.round(g.w * dpr); cv.height = Math.round(g.h * dpr);
+      const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.clearRect(0, 0, g.w, g.h);
+      const W = pat.w * 2, H = pat.h * 2;
+      c.fillStyle = css('--card'); c.fillRect(ox, oy, W * cell, H * cell);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const on = pat.cells[(y % pat.h) * pat.w + (x % pat.w)];
+        if (on) {
+          const prime = x < pat.w && y < pat.h;
+          c.fillStyle = prime ? css('--ink') : css('--ink-3');
+          c.fillRect(ox + x * cell + 1, oy + (H - 1 - y) * cell + 1, cell - 1, cell - 1);
+        }
+      }
+      c.strokeStyle = css('--rule-strong'); c.lineWidth = 1;
+      c.beginPath();
+      for (let x = 0; x <= W; x++) { c.moveTo(ox + x * cell + 0.5, oy); c.lineTo(ox + x * cell + 0.5, oy + H * cell); }
+      for (let y = 0; y <= H; y++) { c.moveTo(ox, oy + y * cell + 0.5); c.lineTo(ox + W * cell, oy + y * cell + 0.5); }
+      c.stroke();
+      // one repeat framed in red, bottom-left (picks count upward)
+      c.strokeStyle = css('--selvedge'); c.lineWidth = 2;
+      c.strokeRect(ox + 1, oy + pat.h * cell + 1, pat.w * cell - 1, pat.h * cell - 1);
+      if (showCursor && !S.jq) {
+        c.strokeStyle = css('--indigo'); c.lineWidth = 2.5;
+        c.strokeRect(ox + cur[0] * cell + 1.5, oy + (H - 1 - cur[1]) * cell + 1.5, cell - 2, cell - 2);
+      }
+      c.fillStyle = css('--ink-3'); c.font = '10px ' + css('--font-mono'); c.textAlign = 'center';
+      for (let x = 0; x < pat.w; x++) c.fillText(String(x + 1), ox + x * cell + cell / 2, oy + H * cell + 13);
+      c.textAlign = 'right';
+      for (let y = 0; y < pat.h; y++) c.fillText(String(y + 1), ox - 6, oy + (H - 1 - y) * cell + cell / 2 + 3);
+      $('#oW').textContent = pat.w; $('#oH').textContent = pat.h;
+      const st = FC.weaveStats(pat), warn = $('#draftWarn');
+      const msgs = [];
+      if (!S.jq && st.looseWarp.length) msgs.push(`第 ${st.looseWarp.map(i => i + 1).join('、')} 根經紗在循環裡沒有交織`);
+      if (!S.jq && st.looseWeft.length) msgs.push(`第 ${st.looseWeft.map(i => i + 1).join('、')} 緯沒有交織`);
+      warn.hidden = !msgs.length;
+      warn.textContent = msgs.length ? msgs.join('；') + '，會浮成一整條，布面不穩。' : '';
+      $('#draftNote').textContent = S.jq ? '提花模式：底組織固定為五枚緞（字＝經面、底＝緯面），關掉提花即可編輯。' : '紅線框起來的是一個組織循環，旁邊三格是它的重複。';
+      cv.style.opacity = S.jq ? 0.55 : 1;
+    }
+    function cellAt(e) {
+      const r = cv.getBoundingClientRect();
+      const x = Math.floor((e.clientX - r.left - ox) / cell), yy = Math.floor((e.clientY - r.top - oy) / cell);
+      const H = S.pat.h * 2;
+      if (x < 0 || yy < 0 || x >= S.pat.w * 2 || yy >= H) return null;
+      return [x % S.pat.w, (H - 1 - yy) % S.pat.h];
+    }
+    function setCell(x, y, v) {
+      const i = y * S.pat.w + x;
+      if (S.pat.cells[i] === v) return;
+      S.pat.cells[i] = v; S.preset = 'custom'; changed();
+    }
+    cv.addEventListener('pointerdown', e => {
+      if (S.jq) return;
+      const c = cellAt(e); if (!c) return;
+      cv.setPointerCapture(e.pointerId);
+      painting = S.pat.cells[c[1] * S.pat.w + c[0]] ? 0 : 1;
+      setCell(c[0], c[1], painting);
+    });
+    cv.addEventListener('pointermove', e => { if (painting < 0) return; const c = cellAt(e); if (c) setCell(c[0], c[1], painting); });
+    const end = () => { painting = -1; };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+    cv.addEventListener('focus', () => { showCursor = true; draw(); });
+    cv.addEventListener('blur', () => { showCursor = false; draw(); });
+    cv.addEventListener('keydown', e => {
+      if (S.jq) return;
+      const m = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+      if (m) { cur = [FC.mod(cur[0] + m[0], S.pat.w), FC.mod(cur[1] + m[1], S.pat.h)]; draw(); e.preventDefault(); }
+      else if (e.key === ' ' || e.key === 'Enter') { const i = cur[1] * S.pat.w + cur[0]; setCell(cur[0], cur[1], S.pat.cells[i] ? 0 : 1); e.preventDefault(); }
+    });
+    $$('[data-step]').forEach(b => b.addEventListener('click', () => {
+      if (S.jq) return;
+      const d = +b.dataset.d, w = clamp(S.pat.w + (b.dataset.step === 'w' ? d : 0), 2, 16), h = clamp(S.pat.h + (b.dataset.step === 'h' ? d : 0), 2, 16);
+      S.pat = FC.resize(S.pat, w, h); S.preset = 'custom'; cur = [0, 0]; changed();
+    }));
+    $('#invertBtn').addEventListener('click', () => { if (S.jq) return; S.pat = FC.invert(S.pat); S.preset = 'custom'; changed(); });
+    onChange(draw);
+    addEventListener('resize', draw);
+  }
+
+  /* ---------- yarn & spec controls ---------- */
+  function initControls() {
+    function chips(box, key) {
+      DYES.forEach(([hex, name]) => {
+        const b = document.createElement('button');
+        b.className = 'chip'; b.style.background = hex; b.title = name; b.dataset.hex = hex;
+        b.setAttribute('aria-label', name); b.setAttribute('aria-pressed', 'false');
+        b.addEventListener('click', () => { S[key] = hex; changed(); });
+        box.appendChild(b);
+      });
+      const inp = document.createElement('input');
+      inp.type = 'color'; inp.id = 'color' + key.toUpperCase(); inp.setAttribute('aria-label', '自訂顏色');
+      inp.addEventListener('input', () => { S[key] = inp.value; changed(); });
+      box.appendChild(inp);
+    }
+    chips($('#chipsA'), 'a'); chips($('#chipsB'), 'b');
+    $$('#orderSeg button').forEach(b => b.addEventListener('click', () => { S.order = b.dataset.order; if (S.preset !== 'custom') S.preset = 'custom'; changed(); }));
+    const sliders = [['sWarpDen', 'warpDen', v => v + 'D'], ['sWeftDen', 'weftDen', v => v + 'D'], ['sEpi', 'epi', v => v], ['sPpi', 'ppi', v => v], ['sZoom', 'zoom', () => '']];
+    sliders.forEach(([id, key]) => $('#' + id).addEventListener('input', e => { S[key] = +e.target.value; if (key !== 'zoom') S.preset = S.preset === 'custom' ? 'custom' : S.preset; changed(); }));
+    $('#jqSwitch').addEventListener('click', () => {
+      S.jq = !S.jq; $('#jqSwitch').setAttribute('aria-checked', String(S.jq));
+      S.zoom = 50; syncControls();
+      if (S.jq) rebuildJacquard(); else changed();
+    });
+    let tmr = 0;
+    $('#jqText').addEventListener('input', e => {
+      S.jqText = e.target.value;
+      if (!S.jq) { S.jq = true; $('#jqSwitch').setAttribute('aria-checked', 'true'); }
+      clearTimeout(tmr); tmr = setTimeout(rebuildJacquard, 160);
+    });
+    onChange(() => {
+      $$('#chipsA .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.hex.toLowerCase() === S.a.toLowerCase())));
+      $$('#chipsB .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.hex.toLowerCase() === S.b.toLowerCase())));
+      $('#colorA').value = S.a; $('#colorB').value = S.b;
+      $$('#orderSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.order === S.order)));
+      $('#orderName').textContent = S.jq ? '提花用單色' : { solid: '經緯各一色', 44: '經緯都 4 深 4 淺', ripstop: '每 9 根加一對強化紗' }[S.order];
+      $('#vWarpDen').textContent = S.warpDen + 'D'; $('#vWeftDen').textContent = S.weftDen + 'D';
+      $('#vEpi').textContent = S.epi; $('#vPpi').textContent = S.ppi;
+      $('#vZoom').textContent = '視野寬 ' + (fovInches() * 25.4).toFixed(1) + ' mm';
+    });
+  }
+  function syncControls() {
+    $('#sWarpDen').value = S.warpDen; $('#sWeftDen').value = S.weftDen;
+    $('#sEpi').value = S.epi; $('#sPpi').value = S.ppi; $('#sZoom').value = S.zoom;
+  }
+
+  /* =========================================================== drape */
+  function mat4() { return new Float32Array(16); }
+  function perspective(fovy, aspect, near, far) {
+    const f = 1 / Math.tan(fovy / 2), m = mat4();
+    m[0] = f / aspect; m[5] = f; m[10] = (far + near) / (near - far); m[11] = -1; m[14] = (2 * far * near) / (near - far);
+    return m;
+  }
+  function lookAt(e, c, up) {
+    const z = norm([e[0] - c[0], e[1] - c[1], e[2] - c[2]]), x = norm(cross(up, z)), y = cross(z, x), m = mat4();
+    m[0] = x[0]; m[4] = x[1]; m[8] = x[2]; m[1] = y[0]; m[5] = y[1]; m[9] = y[2]; m[2] = z[0]; m[6] = z[1]; m[10] = z[2];
+    m[12] = -dot(x, e); m[13] = -dot(y, e); m[14] = -dot(z, e); m[15] = 1;
+    return m;
+  }
+  function mul(a, b) { const o = mat4(); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = s; } return o; }
+  function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+  function norm(a) { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+
+  const CLOTH_VS = `#version 300 es
+in vec3 aPos; in vec3 aNor; in vec2 aUV;
+uniform mat4 uMVP;
+out vec3 vNor; out vec2 vUV; out vec3 vPos;
+void main(){ vNor = aNor; vUV = aUV; vPos = aPos; gl_Position = uMVP * vec4(aPos, 1.); }`;
+  const CLOTH_FS = `#version 300 es
+precision highp float;
+in vec3 vNor; in vec2 vUV; in vec3 vPos;
+uniform sampler2D uTex; uniform vec3 uEye;
+out vec4 o;
+void main(){
+  vec3 N = normalize(vNor);
+  vec3 tex = pow(texture(uTex, vUV).rgb, vec3(2.2));
+  if (!gl_FrontFacing) { N = -N; tex *= .6; }
+  vec3 L = normalize(vec3(-.8, .42, .62));
+  vec3 V = normalize(uEye - vPos);
+  float w = .38 + .62 * dot(N, L);
+  float s = pow(max(dot(N, normalize(L + V)), 0.), 28.) * .1;
+  vec3 c = tex * (.12 + 1.15 * max(w, 0.) * max(w, 0.)) + s;
+  float fold = smoothstep(.0, .35, abs(dot(N, V)));
+  c *= mix(.55, 1., fold);
+  o = vec4(pow(c, vec3(1. / 2.2)), 1.);
+}`;
+
+  function initDrape(getSnapshot) {
+    const cv = $('#drapeGL'), hud = $('#drapeHud'), stage = cv.parentElement;
+    const gl = cv.getContext('webgl2', { antialias: true, alpha: false });
+    if (!gl) { document.documentElement.classList.add('no-gl'); return null; }
+    const fab = new FC.FabricGL(cv, { gl });
+    const TW = 1024, TH = 768;
+    const target = fab.createTarget(TW, TH);
+    // cloth program
+    function sh(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+    const prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, CLOTH_VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, CLOTH_FS)); gl.linkProgram(prog);
+    const uMVP = gl.getUniformLocation(prog, 'uMVP'), uTex = gl.getUniformLocation(prog, 'uTex'), uEye = gl.getUniformLocation(prog, 'uEye');
+
+    const NX = 46, NY = 34, CW = 2.0, CH = 1.48, N = NX * NY;
+    const pos = new Float32Array(N * 3), prev = new Float32Array(N * 3), nor = new Float32Array(N * 3), uv = new Float32Array(N * 2);
+    const invM = new Float32Array(N), pinXY = new Float32Array(N * 3);
+    for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) { const k = j * NX + i; uv[k * 2] = i / (NX - 1); uv[k * 2 + 1] = 1 - j / (NY - 1); }
+    const idx = [];
+    for (let j = 0; j < NY - 1; j++) for (let i = 0; i < NX - 1; i++) { const a = j * NX + i, b = a + 1, c = a + NX, d = c + 1; idx.push(a, c, b, b, c, d); }
+    const cons = [];
+    const add = (a, b, k) => cons.push([a, b, 0, k]);
+    for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+      const a = j * NX + i;
+      if (i < NX - 1) add(a, a + 1, 1); if (j < NY - 1) add(a, a + NX, 1);
+      if (i < NX - 1 && j < NY - 1) { add(a, a + NX + 1, 0.7); add(a + 1, a + NX, 0.7); }
+      if (i < NX - 2) add(a, a + 2, 0.12); if (j < NY - 2) add(a, a + 2 * NX, 0.12);
+    }
+    let pinMode = 'rail', wind = !reduce, grab = -1, grabTarget = [0, 0, 0];
+    function reset() {
+      for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+        const k = j * NX + i, x = -CW / 2 + i * CW / (NX - 1), y = CH / 2 - j * CH / (NY - 1);
+        pos.set([x, y, Math.sin(i * 0.9) * 0.004], k * 3); prev.set(pos.subarray(k * 3, k * 3 + 3), k * 3);
+        let pinned = false, px = x;
+        if (j === 0) {
+          if (pinMode === 'rail' && (i % 3 === 0 || i === NX - 1)) { pinned = true; px = x * 0.74; }
+          if (pinMode === 'corners' && (i === 0 || i === NX - 1)) { pinned = true; px = x * 0.66; }
+          if (pinMode === 'one' && i === 0) { pinned = true; px = x * 0.5; }
+        }
+        invM[k] = pinned ? 0 : 1; pinXY.set([px, CH / 2 + 0.02, 0], k * 3);
+      }
+      cons.forEach(c => { const a = c[0] * 3, b = c[1] * 3; c[2] = Math.hypot(pos[a] - pos[b], pos[a + 1] - pos[b + 1], pos[a + 2] - pos[b + 2]); });
+    }
+    reset();
+    const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+    function buf(data, loc, size, dyn) { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, dyn ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0); return b; }
+    const bPos = buf(pos, gl.getAttribLocation(prog, 'aPos'), 3, true);
+    const bNor = buf(nor, gl.getAttribLocation(prog, 'aNor'), 3, true);
+    buf(uv, gl.getAttribLocation(prog, 'aUV'), 2, false);
+    const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+    gl.bindVertexArray(null);
+
+    let time = 0;
+    function step(dt) {
+      const g = -9.8, damp = 0.985;
+      for (let k = 0; k < N; k++) {
+        const o = k * 3;
+        if (invM[k] === 0) { pos[o] = pinXY[o]; pos[o + 1] = pinXY[o + 1]; pos[o + 2] = pinXY[o + 2]; prev.set(pos.subarray(o, o + 3), o); continue; }
+        let ax = 0, ay = g, az = 0;
+        if (wind) {
+          const x = pos[o], y = pos[o + 1];
+          const gust = 0.55 + 0.45 * Math.sin(time * 0.43) * Math.sin(time * 0.17 + 1.3);
+          az = 7.5 * gust * (0.5 + 0.5 * Math.sin(time * 1.6 + x * 2.6 + y * 1.3)) * (0.65 + 0.35 * Math.sin(time * 0.9 + y * 3.1 - x));
+          ax = 1.4 * gust * Math.sin(time * 0.8 + y * 2.0);
+        }
+        const vx = (pos[o] - prev[o]) * damp, vy = (pos[o + 1] - prev[o + 1]) * damp, vz = (pos[o + 2] - prev[o + 2]) * damp;
+        prev[o] = pos[o]; prev[o + 1] = pos[o + 1]; prev[o + 2] = pos[o + 2];
+        pos[o] += vx + ax * dt * dt; pos[o + 1] += vy + ay * dt * dt; pos[o + 2] += vz + az * dt * dt;
+      }
+      if (grab >= 0) { const o = grab * 3; pos.set(grabTarget, o); prev.set(grabTarget, o); }
+      for (let it = 0; it < 10; it++) {
+        for (let c = 0; c < cons.length; c++) {
+          const C = cons[c], a = C[0] * 3, b = C[1] * 3;
+          const wa = C[0] === grab ? 0 : invM[C[0]], wb = C[1] === grab ? 0 : invM[C[1]], ws = wa + wb;
+          if (ws === 0) continue;
+          const dx = pos[b] - pos[a], dy = pos[b + 1] - pos[a + 1], dz = pos[b + 2] - pos[a + 2];
+          const d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
+          const diff = (d - C[2]) / d * C[3] / ws;
+          pos[a] += dx * diff * wa; pos[a + 1] += dy * diff * wa; pos[a + 2] += dz * diff * wa;
+          pos[b] -= dx * diff * wb; pos[b + 1] -= dy * diff * wb; pos[b + 2] -= dz * diff * wb;
+        }
+      }
+      time += dt;
+    }
+    function normals() {
+      nor.fill(0);
+      for (let t = 0; t < idx.length; t += 3) {
+        const a = idx[t] * 3, b = idx[t + 1] * 3, c = idx[t + 2] * 3;
+        const u = [pos[b] - pos[a], pos[b + 1] - pos[a + 1], pos[b + 2] - pos[a + 2]], v = [pos[c] - pos[a], pos[c + 1] - pos[a + 1], pos[c + 2] - pos[a + 2]];
+        const n = cross(v, u);
+        for (const q of [a, b, c]) { nor[q] += n[0]; nor[q + 1] += n[1]; nor[q + 2] += n[2]; }
+      }
+    }
+    const eye = [0, 0.0, 3.1], look = [0, -0.1, 0], fovy = 34 * Math.PI / 180;
+    let mvp = mat4();
+    function project(k) {
+      const x = pos[k * 3], y = pos[k * 3 + 1], z = pos[k * 3 + 2];
+      const cx = mvp[0] * x + mvp[4] * y + mvp[8] * z + mvp[12], cy = mvp[1] * x + mvp[5] * y + mvp[9] * z + mvp[13], cw = mvp[3] * x + mvp[7] * y + mvp[11] * z + mvp[15];
+      const r = cv.getBoundingClientRect();
+      return [(cx / cw * 0.5 + 0.5) * r.width, (1 - (cy / cw * 0.5 + 0.5)) * r.height];
+    }
+    function draw() {
+      fitCanvas(cv, 2);
+      const r = cv.getBoundingClientRect();
+      mvp = mul(perspective(fovy, r.width / r.height, 0.1, 20), lookAt(eye, look, [0, 1, 0]));
+      normals();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, cv.width, cv.height);
+      gl.clearColor(STAGE[0], STAGE[1], STAGE[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+      gl.useProgram(prog);
+      gl.bindVertexArray(vao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, bPos); gl.bufferSubData(gl.ARRAY_BUFFER, 0, pos);
+      gl.bindBuffer(gl.ARRAY_BUFFER, bNor); gl.bufferSubData(gl.ARRAY_BUFFER, 0, nor);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, target.tex); gl.uniform1i(uTex, 0);
+      gl.uniformMatrix4fv(uMVP, false, mvp); gl.uniform3fv(uEye, eye);
+      gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
+      gl.bindVertexArray(null); gl.disable(gl.DEPTH_TEST);
+      // rail + clips
+      fitCanvas(hud, 2);
+      const h = hud.getContext('2d'), k = hud.width / r.width;
+      h.setTransform(k, 0, 0, k, 0, 0); h.clearRect(0, 0, r.width, r.height);
+      const pins = []; for (let i = 0; i < NX; i++) if (invM[i] === 0) pins.push(project(i));
+      if (pinMode === 'rail' && pins.length) {
+        h.strokeStyle = 'rgba(236,233,224,.55)'; h.lineWidth = 3; h.lineCap = 'round';
+        h.beginPath(); h.moveTo(pins[0][0] - 40, pins[0][1] - 6); h.lineTo(pins[pins.length - 1][0] + 40, pins[pins.length - 1][1] - 6); h.stroke();
+      }
+      pins.forEach(p => { h.fillStyle = '#ECE9E0'; h.fillRect(p[0] - 2.5, p[1] - 9, 5, 9); h.fillStyle = '#C23A2E'; h.fillRect(p[0] - 2.5, p[1] - 9, 5, 2); });
+    }
+    let running = false, raf = 0, last = 0;
+    function loop(now) {
+      const dt = Math.min(0.033, (now - (last || now)) / 1000); last = now;
+      const sub = 3; for (let s = 0; s < sub; s++) step(Math.max(dt, 1 / 120) / sub);
+      draw();
+      if (running) raf = requestAnimationFrame(loop);
+    }
+    function start() { if (!running) { running = true; last = 0; raf = requestAnimationFrame(loop); } }
+    function stop() { running = false; cancelAnimationFrame(raf); }
+    // settle once so the first frame already hangs
+    for (let s = 0; s < 240; s++) step(1 / 120);
+    visibility(stage, v => (v ? start() : stop()));
+
+    // pointer grab
+    let startMouse = null, startPos = null;
+    cv.addEventListener('pointerdown', e => {
+      const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+      let best = -1, bd = 46 * 46;
+      for (let k = 0; k < N; k++) { const p = project(k); const d = (p[0] - mx) ** 2 + (p[1] - my) ** 2; if (d < bd) { bd = d; best = k; } }
+      if (best < 0) return;
+      grab = best; startMouse = [mx, my]; startPos = Array.from(pos.subarray(best * 3, best * 3 + 3)); grabTarget = startPos.slice();
+      cv.setPointerCapture(e.pointerId); cv.classList.add('grabbing'); start();
+    });
+    cv.addEventListener('pointermove', e => {
+      if (grab < 0) return;
+      const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+      const depth = eye[2] - startPos[2], wpp = 2 * depth * Math.tan(fovy / 2) / r.height;
+      grabTarget = [startPos[0] + (mx - startMouse[0]) * wpp, startPos[1] - (my - startMouse[1]) * wpp, startPos[2] + 0.15];
+    });
+    const release = () => { grab = -1; cv.classList.remove('grabbing'); };
+    cv.addEventListener('pointerup', release); cv.addEventListener('pointercancel', release);
+    $$('#pinSeg button').forEach(b => b.addEventListener('click', () => {
+      pinMode = b.dataset.pin; $$('#pinSeg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      reset(); for (let s = 0; s < 60; s++) step(1 / 120); draw();
+    }));
+    $('#windBtn').setAttribute('aria-pressed', String(wind));
+    $('#windBtn').addEventListener('click', () => { wind = !wind; $('#windBtn').setAttribute('aria-pressed', String(wind)); });
+    $('#resetBtn').addEventListener('click', () => { reset(); for (let s = 0; s < 120; s++) step(1 / 120); draw(); });
+
+    // fabric texture from the lab state
+    const snap = document.createElement('canvas'); snap.width = TW; snap.height = TH;
+    function updateTexture() {
+      const { st, sp, colors } = derive();
+      const pat = activePattern();
+      const lcm = (a, b) => { const g = (x, y) => (y ? g(y, x % y) : x); return a / g(a, b) * b; };
+      const cw = lcm(pat.w, colors.warp.length), ch = lcm(pat.h, colors.weft.length);
+      const cellsX = S.jq ? pat.w : cw * Math.max(1, Math.round(40 / cw));
+      const pxEnd = TW / cellsX, pxPick = pxEnd * S.epi / S.ppi;
+      const cellsY = S.jq ? pat.h * Math.max(1, Math.round(TH / pxPick / pat.h)) : ch * Math.max(1, Math.round(TH / pxPick / ch));
+      fab.setPattern('A', pat); fab.setColors('A', colors.warp, colors.weft);
+      fab.render({ center: [cellsX / 2, cellsY / 2], cellPx: pxEnd, aspect: (TH / cellsY) / pxEnd, warpW: sp.warpW, weftW: sp.weftW, crimp: 0.12 + 0.14 * st.interlace,
+        light: [TW * 0.35, TH * 0.7], lightH: 60, bg: [0.03, 0.035, 0.05], exposure: 1.55, aa: 2, spec: 0.8 }, target);
+      // snapshot for the shoe
+      const px = new Uint8Array(TW * TH * 4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, target.fb);
+      gl.readPixels(0, 0, TW, TH, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      const c2 = snap.getContext('2d'), img = c2.createImageData(TW, TH);
+      for (let y = 0; y < TH; y++) img.data.set(px.subarray((TH - 1 - y) * TW * 4, (TH - y) * TW * 4), y * TW * 4);
+      c2.putImageData(img, 0, 0);
+      getSnapshot(snap.toDataURL('image/jpeg', 0.86), cellsX, cellsY);
+      if (!running) draw();
+    }
+    let tmr = 0;
+    onChange(() => { clearTimeout(tmr); tmr = setTimeout(updateTexture, 140); });
+    updateTexture();
+    return {};
+  }
+
+  /* =========================================================== shoe */
+  function initShoe() {
+    const svg = $('#shoe'), legend = $('#legend'), NS = 'http://www.w3.org/2000/svg';
+    const parts = FC.SHOE.parts;
+    const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+    const defs = el('defs', {}, svg);
+    const pat = el('pattern', { id: 'fabPat', patternUnits: 'userSpaceOnUse', width: 256, height: 192 }, defs);
+    const patImg = el('image', { width: 256, height: 192, preserveAspectRatio: 'none' }, pat);
+    const shade = el('linearGradient', { id: 'upperShade', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.16' }, shade);
+    el('stop', { offset: '0.55', 'stop-color': '#000', 'stop-opacity': '0' }, shade);
+    el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': '0.42' }, shade);
+    const foam = el('linearGradient', { id: 'foam', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el('stop', { offset: '0', 'stop-color': '#f5f4ef' }, foam); el('stop', { offset: '1', 'stop-color': '#d6d4cc' }, foam);
+    const heelG = el('linearGradient', { id: 'heelG', x1: 0, y1: 0, x2: 1, y2: 1 }, defs);
+    el('stop', { offset: '0', 'stop-color': '#59606f' }, heelG); el('stop', { offset: '1', 'stop-color': '#2a2e38' }, heelG);
+    el('ellipse', { class: 'ground', cx: 505, cy: 404, rx: 450, ry: 12 }, svg);
+    const groups = {};
+    parts.forEach((p, i) => {
+      const g = el('g', { class: 'part', 'data-id': p.id }, svg);
+      groups[p.id] = g;
+      if (p.stroke) {
+        el('path', { d: p.d, fill: 'none', stroke: p.id === 'laces' ? '#1a1d26' : 'rgba(0,0,0,.25)', 'stroke-width': p.id === 'laces' ? 9 : 14, 'stroke-linecap': 'round' }, g);
+        el('path', { d: p.d, fill: 'none', stroke: p.fill, 'stroke-width': p.id === 'laces' ? 6 : 11, 'stroke-linecap': 'round' }, g);
+      } else if (p.fill === 'fabric') {
+        el('path', { d: p.d, fill: 'url(#fabPat)' }, g);
+        el('path', { d: p.d, fill: 'url(#upperShade)' }, g);
+        el('path', { d: p.d, fill: 'none', class: 'outline' }, g);
+        // stitch line along the bottom edge
+        el('path', { d: 'M 112 296 C 200 288 320 296 420 306 C 560 322 700 330 800 330', fill: 'none', stroke: 'rgba(255,255,255,.45)', 'stroke-width': 1.4, 'stroke-dasharray': '5 4' }, g);
+      } else {
+        const fill = p.id === 'midsole' ? 'url(#foam)' : p.id === 'heel' ? 'url(#heelG)' : p.fill;
+        el('path', { d: p.d, fill, class: 'outline' }, g);
+        if (p.id === 'midsole') el('path', { d: 'M 118 346 C 260 354 520 368 700 368 C 780 368 840 358 884 338', fill: 'none', stroke: 'rgba(0,0,0,.16)', 'stroke-width': 2 }, g);
+        if (p.id === 'outsole') for (let x = 190; x < 720; x += 26) el('path', { d: `M ${x} 386 L ${x - 6} 397`, stroke: 'rgba(255,255,255,.12)', 'stroke-width': 2 }, g);
+        if (p.id === 'eyestay') FC.SHOE.eyelets.forEach(e => { el('circle', { cx: e[0], cy: e[1], r: 6.5, fill: '#cfd2d9' }, g); el('circle', { cx: e[0], cy: e[1], r: 3, fill: '#0d1018' }, g); });
+        if (p.id === 'toecap') el('path', { d: 'M 822 306 C 860 308 896 310 912 315', fill: 'none', stroke: 'rgba(255,255,255,.7)', 'stroke-width': 2, 'stroke-linecap': 'round' }, g);
+        if (p.id === 'tongue') el('path', { d: 'M 312 150 C 314 126 326 112 344 108', fill: 'none', stroke: 'rgba(0,0,0,.18)', 'stroke-width': 3, 'stroke-dasharray': '2 5', 'stroke-linecap': 'round' }, g);
+      }
+      const mk = el('g', { class: 'mk' }, g);
+      el('circle', { cx: p.anchor[0], cy: p.anchor[1], r: 12 }, mk);
+      const t = el('text', { x: p.anchor[0], y: p.anchor[1] }, mk); t.textContent = String(i + 1);
+      const li = document.createElement('li');
+      li.dataset.id = p.id; li.tabIndex = 0;
+      li.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')}</span><b>${p.zh}<small>${p.en}</small></b><span>${p.mat}</span>`;
+      legend.appendChild(li);
+    });
+    // paint order (legend order is bottom-up anatomy, not z-order)
+    ['tongue', 'insole', 'midsole', 'outsole', 'upper', 'heel', 'toecap', 'collar', 'tab', 'saddle', 'eyestay', 'laces'].forEach(id => svg.appendChild(groups[id]));
+    const detail = $('#partDetail'), detailDefault = detail.textContent;
+    function focus(id) {
+      const p = parts.find(x => x.id === id);
+      detail.innerHTML = p ? `<b>${p.zh}</b>　${p.mat}。${p.note}。` : detailDefault;
+      svg.classList.toggle('focusing', !!id);
+      parts.forEach(p => groups[p.id].classList.toggle('on', p.id === id));
+      $$('#legend li').forEach(li => li.classList.toggle('on', li.dataset.id === id));
+    }
+    parts.forEach(p => {
+      groups[p.id].addEventListener('pointerenter', () => focus(p.id));
+      groups[p.id].addEventListener('pointerleave', () => focus(null));
+    });
+    $$('#legend li').forEach(li => {
+      li.addEventListener('pointerenter', () => focus(li.dataset.id)); li.addEventListener('pointerleave', () => focus(null));
+      li.addEventListener('focus', () => focus(li.dataset.id)); li.addEventListener('blur', () => focus(null));
+    });
+    function setExplode(e) {
+      parts.forEach(p => groups[p.id].setAttribute('transform', `translate(${(p.ex[0] * e).toFixed(2)} ${(p.ex[1] * e).toFixed(2)})`));
+      svg.querySelectorAll('.mk').forEach(m => { m.style.opacity = String(0.25 + 0.75 * smooth(0.15, 0.7, e)); });
+    }
+    // scroll-linked explode on large screens, button elsewhere
+    const track = $('#anatTrack'), btn = $('#explodeBtn');
+    const mq = matchMedia('(min-width: 980px) and (min-height: 700px)');
+    let manual = 0, tweenRaf = 0;
+    function scrolly() { return mq.matches && !reduce; }
+    function onScroll() {
+      if (!scrolly()) return;
+      const r = track.getBoundingClientRect(), span = r.height - innerHeight;
+      const p = clamp(-r.top / Math.max(1, span), 0, 1);
+      const e = smooth(0.06, 0.42, p) * (1 - smooth(0.78, 1, p));
+      setExplode(e); btn.setAttribute('aria-pressed', String(e > 0.5)); btn.textContent = e > 0.5 ? '組回去' : '拆開';
+    }
+    function tweenTo(to) {
+      cancelAnimationFrame(tweenRaf);
+      const from = manual, t0 = performance.now(), dur = reduce ? 1 : 900;
+      const tick = now => {
+        const k = clamp((now - t0) / dur, 0, 1), ease = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        manual = from + (to - from) * ease; setExplode(manual);
+        if (k < 1) tweenRaf = requestAnimationFrame(tick);
+      };
+      tweenRaf = requestAnimationFrame(tick);
+      btn.setAttribute('aria-pressed', String(to > 0.5)); btn.textContent = to > 0.5 ? '組回去' : '拆開';
+    }
+    btn.addEventListener('click', () => {
+      if (scrolly()) {
+        const r = track.getBoundingClientRect(), span = r.height - innerHeight;
+        const goal = btn.getAttribute('aria-pressed') === 'true' ? 0.0 : 0.55;
+        scrollTo({ top: scrollY + r.top + span * goal, behavior: reduce ? 'auto' : 'smooth' });
+      } else tweenTo(manual > 0.5 ? 0 : 1);
+    });
+    function layout() { track.classList.toggle('scrolly', scrolly()); if (scrolly()) onScroll(); else setExplode(manual); }
+    mq.addEventListener('change', layout); layout();
+    addEventListener('scroll', onScroll, { passive: true });
+    if (!scrolly()) visibility(track, v => { if (v && manual === 0 && !initShoe.auto) { initShoe.auto = true; setTimeout(() => tweenTo(1), 500); } });
+    return {
+      setFabric(url, cellsX, cellsY) {
+        const tw = cellsX * 6.2, th = tw * 768 / 1024;
+        pat.setAttribute('width', tw.toFixed(1)); pat.setAttribute('height', th.toFixed(1));
+        patImg.setAttribute('width', tw.toFixed(1)); patImg.setAttribute('height', th.toFixed(1));
+        patImg.setAttribute('href', url);
+        $('#anatNote').textContent = '鞋面＝實驗室目前的布：' + (S.jq ? '緞紋提花「' + (S.jqText || '經緯') + '」' : presetLabel()) + '。';
+      },
+    };
+  }
+
+  /* =========================================================== steps */
+  function initSteps() {
+    const n = $('#stepNum');
+    let done = false;
+    visibility($('#steps'), v => {
+      if (!v || done || reduce) return;
+      done = true;
+      const t0 = performance.now();
+      const tick = now => {
+        const k = clamp((now - t0) / 1800, 0, 1), e = 1 - Math.pow(1 - k, 4);
+        n.textContent = Math.round(20000 * e).toLocaleString('en-US');
+        if (k < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+
+  /* =========================================================== boot */
+  const P0 = PRESETS[0];
+  Object.assign(S, { a: P0.a, b: P0.b });
+  initPresets(); initDraft(); initControls(); initReadout();
+  const shoe = initShoe();
+  if (hasGL) {
+    initHero(); initLab();
+    try { initDrape((url, cx, cy) => shoe.setFabric(url, cx, cy)); } catch (e) { console.error(e); }
+  }
+  initSteps();
+  const fv = $('#filmVideo');
+  fv.addEventListener('error', () => { fv.hidden = true; $('#noFilm').hidden = false; });
+  applyPreset('canvas4');
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(changed);
+})();
+</script>

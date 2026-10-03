@@ -1,0 +1,503 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>經緯 Warp &amp; Weft · 30s film</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap">
+<style>
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  #stage { position: relative; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background: #04050a; color: #ECE9E0; }
+  #out { position: absolute; inset: 0; }
+  .t { position: absolute; opacity: 0; will-change: opacity, transform; }
+  #mark { left: 120px; top: 78px; font: 500 17px/1 "JetBrains Mono", Consolas, monospace; letter-spacing: .34em; color: rgba(236,233,224,.6); }
+  #cap { left: 120px; bottom: 132px; }
+  #capBig { font: 900 136px/1 "Noto Serif TC", "Microsoft JhengHei", serif; letter-spacing: .08em; text-shadow: 0 4px 40px rgba(0,0,0,.6); }
+  #capSub { margin-top: 22px; font: 500 21px/1.4 "JetBrains Mono", "Noto Sans TC", monospace; letter-spacing: .16em; color: #B9BDC9; text-shadow: 0 2px 16px rgba(0,0,0,.9); white-space: nowrap; }
+  #capSub b { color: #ECE9E0; font-weight: 700; }
+  #spec { left: 0; right: 0; top: 700px; text-align: center; font: 500 25px/1.4 "JetBrains Mono", "Noto Sans TC", monospace; letter-spacing: .1em; color: #ECE9E0; text-shadow: 0 2px 18px rgba(0,0,0,.95); white-space: pre; }
+  #counter { left: 0; right: 0; top: 808px; text-align: center; font: 700 112px/1 "JetBrains Mono", monospace; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  #counter small { font: 900 40px/1 "Noto Serif TC", serif; margin-left: 18px; color: #B9BDC9; letter-spacing: .1em; }
+  #quote { left: 0; right: 0; top: 832px; text-align: center; font: 700 50px/1.3 "Noto Serif TC", serif; letter-spacing: .06em; }
+  #cite { left: 0; right: 0; top: 916px; text-align: center; font: 500 20px/1 "JetBrains Mono", monospace; letter-spacing: .28em; color: #A9AEBD; }
+  #credit { right: 120px; top: 78px; font: 500 15px/1 "JetBrains Mono", monospace; letter-spacing: .22em; color: rgba(236,233,224,.55); }
+  #fade { position: absolute; inset: 0; background: #000; opacity: 0; }
+  #warm { position: absolute; left: -9999px; top: 0; }
+  #warm .s { font-family: "Noto Serif TC"; font-weight: 900; }
+  #warm .m { font-family: "JetBrains Mono"; font-weight: 500; }
+  #warm .n { font-family: "Noto Sans TC"; font-weight: 900; }
+  #play { position: fixed; right: 16px; bottom: 16px; font: 500 13px monospace; color: #aaa; background: #111; border: 1px solid #333; padding: 6px 10px; cursor: pointer; }
+</style>
+<div id="stage">
+  <canvas id="out" width="1920" height="1080"></canvas>
+  <div class="t" id="mark">經緯 · WARP &amp; WEFT</div>
+  <div class="t" id="credit">FOR FANG SUGIMOTO</div>
+  <div class="t" id="cap"><div id="capBig"></div><div id="capSub"></div></div>
+  <div class="t" id="spec"></div>
+  <div class="t" id="counter"><span id="cnum">0</span><small>步</small></div>
+  <div class="t" id="quote">好的材料設計，是走完兩萬步之後，你才會真正感謝它的存在。</div>
+  <div class="t" id="cite">— FANG SUGIMOTO</div>
+  <div id="fade"></div>
+</div>
+<div id="warm"></div>
+<script src="fabric-core.js"></script>
+<script>
+(async () => {
+  'use strict';
+  const FC = window.FabricCore;
+  const W = 1920, H = 1080, DUR = 30;
+  const capture = /capture/.test(location.search);
+
+  /* ---------------------------------------------------------- math */
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const ss = (a, b, t) => { const x = seg(t, a, b); return x * x * (3 - 2 * x); };
+  const eio = x => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const eo = x => 1 - Math.pow(1 - x, 3);
+  const ei = x => x * x * x;
+  const backOut = x => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  // Fritsch–Carlson monotone cubic through keyframes → smooth camera without overshoot
+  function mono(keys, log) {
+    const xs = keys.map(k => k[0]), ys = keys.map(k => (log ? Math.log(k[1]) : k[1])), n = xs.length;
+    const d = [], m = new Array(n).fill(0);
+    for (let i = 0; i < n - 1; i++) d.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+    m[0] = d[0]; m[n - 1] = d[n - 2];
+    for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+    for (let i = 0; i < n - 1; i++) {
+      if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+      const a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+      if (s > 9) { const k = 3 / Math.sqrt(s); m[i] = k * a * d[i]; m[i + 1] = k * b * d[i]; }
+    }
+    m[0] = 0; m[n - 1] = 0;
+    return t => {
+      if (t <= xs[0]) return log ? Math.exp(ys[0]) : ys[0];
+      if (t >= xs[n - 1]) return log ? Math.exp(ys[n - 1]) : ys[n - 1];
+      let i = 0; while (t > xs[i + 1]) i++;
+      const h = xs[i + 1] - xs[i], u = (t - xs[i]) / h, u2 = u * u, u3 = u2 * u;
+      const v = (2 * u3 - 3 * u2 + 1) * ys[i] + (u3 - 2 * u2 + u) * h * m[i] + (-2 * u3 + 3 * u2) * ys[i + 1] + (u3 - u2) * h * m[i + 1];
+      return log ? Math.exp(v) : v;
+    };
+  }
+
+  /* ---------------------------------------------------------- fonts */
+  const STRINGS = '經緯紗組織提花裁斷成鞋步好的材料設計是走完兩萬之後你才會真正感謝它存在為而平紋斜緞人字千鳥格面布一根先上機沿長方向張緊梭子帶著穿過去不印沖出十二個部件雙金靛循環';
+  document.getElementById('warm').innerHTML = `<span class="s">${STRINGS}</span><span class="m">WARP WEFT 0123456789 ·×—</span><span class="n">為兩萬步而織${STRINGS}</span>`;
+  try {
+    await Promise.all([
+      document.fonts.load('900 136px "Noto Serif TC"', STRINGS), document.fonts.load('700 50px "Noto Serif TC"', STRINGS),
+      document.fonts.load('700 60px "Noto Sans TC"', '為兩萬步而織'), document.fonts.load('500 20px "JetBrains Mono"', 'WARP 0123'),
+      document.fonts.load('700 112px "JetBrains Mono"', '20,000'),
+    ]);
+    await document.fonts.ready;
+  } catch (e) { /* fall back to local fonts */ }
+
+  /* ---------------------------------------------------------- fabrics */
+  const GREIGE = ['#DCD6C8', '#D5CEBE', '#E1DBCD', '#D9D2C3'];
+  const DENIM = ['#1D2B57', '#21305E', '#1A2650', '#243461', '#1F2D5A', '#22315C', '#1C2954'];
+  const GOLD = ['#C9A04A', '#C49A45', '#CFA752', '#C69D48'];
+  const JQ_W = 215, JQ_H = 120;
+  const jq = FC.jacquard('為兩萬步而織', JQ_W, JQ_H, { fill: 0.4, maxW: 0.9, cy: 0.44, weight: 700, font: '"Noto Sans TC", "Microsoft JhengHei", sans-serif' });
+  const rip = FC.colorOrder('ripstop', '#25357A', '#1E2C66');
+  const hound = FC.colorOrder('44', '#16171B', '#ECE8DF');
+  const SEQ = [
+    { t: -1, pat: FC.weave('plain'), warp: GREIGE, weft: ['#2F3E7A'], zh: '平紋', en: 'PLAIN', ww: 0.41, fw: 0.39 },
+    { t: 11.0, pat: FC.weave('twill31'), warp: DENIM, weft: ['#ECE8DE'], zh: '斜紋', en: 'TWILL 3/1', ww: 0.42, fw: 0.38, dur: 0.8 },
+    { t: 12.0, pat: FC.weave('satin5'), warp: GOLD, weft: ['#1B2547'], zh: '緞紋', en: '5-END SATIN', ww: 0.45, fw: 0.36, dur: 0.8 },
+    { t: 13.0, pat: FC.weave('herringbone'), warp: ['#2B2C31', '#2E2F35'], weft: ['#D8D3C8'], zh: '人字紋', en: 'HERRINGBONE', ww: 0.42, fw: 0.4, dur: 0.8 },
+    { t: 14.0, pat: FC.weave('houndstooth'), warp: hound.warp, weft: hound.weft, zh: '千鳥格', en: 'HOUNDSTOOTH', ww: 0.43, fw: 0.42, dur: 0.85 },
+    { t: 16.0, pat: jq, warp: ['#D8B465', '#D2AE5F'], weft: ['#18214A'], zh: '提花', en: 'JACQUARD', ww: 0.46, fw: 0.42, dur: 0.95 },
+    { t: 19.5, pat: FC.weave('ripstop'), warp: rip.warp, weft: rip.weft, zh: '鞋面布', en: 'UPPER TEXTILE', ww: 0.44, fw: 0.42, dur: 0.6 },
+  ];
+
+  /* ---------------------------------------------------------- camera */
+  const T_WEFT = 6.5, T_WOVEN = 11.0, JQ_CELL = W / JQ_W;
+  const cellK = mono([[0, 250], [2.5, 205], [6.3, 34], [11, 18], [15.9, 12.5], [16.9, JQ_CELL], [19.6, JQ_CELL], [21.0, 6.4], [30, 6.4]], true);
+  const tiltK = mono([[0, 0], [3.6, 0], [6.5, 0.62], [11, 0.8], [15.7, 0.5], [16.85, 0], [30, 0]]);
+  const rollK = mono([[0, -0.05], [2.5, 0], [6.5, -0.13], [11, -0.05], [15.7, 0.07], [16.85, 0], [30, 0]]);
+  const cxK = mono([[0, 0.5], [6.5, 0.5], [11, 4.5], [16, 13.5]]);
+  const cyK = mono([[0, 0], [2.5, 0.2], [6.5, 8], [11, 30], [16, 44]]);
+  const base16 = [cxK(16), cyK(16)];
+  const JC = [Math.round(base16[0] / JQ_W) * JQ_W + JQ_W / 2, Math.round(base16[1] / JQ_H) * JQ_H + JQ_H / 2];
+  const zoomK = t => 1 + 0.035 * eio(seg(t, 24.6, 30));
+  function camAt(t) {
+    let center;
+    if (t <= 16) center = [cxK(t), cyK(t)];
+    else { const k = eio(seg(t, 16, 16.9)); center = [lerp(base16[0], JC[0], k), lerp(base16[1], JC[1], k)]; }
+    return { center, cellPx: cellK(t) * zoomK(t), tilt: tiltK(t), roll: rollK(t), aspect: 1 };
+  }
+  const proj = (sx, sy, cam) => FC.project(sx, sy, cam, [W, H]);
+  function rowToScreenY(row, cam) {
+    let lo = -H / 2 - 400, hi = H / 2 + 400;
+    for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; const p = proj(0, mid, cam); if (!p || p[1] > row) hi = mid; else lo = mid; }
+    return (lo + hi) / 2;
+  }
+
+  /* weaving: picks grow exponentially from the bottom row at T_WEFT */
+  const camW = camAt(T_WEFT);
+  const j0 = Math.floor(Math.min(proj(-W / 2, -H / 2, camW)[1], proj(W / 2, -H / 2, camW)[1])) - 1;
+  const PA = 3.2, PK = 0.9;
+  function picksAt(t) {
+    if (t < T_WEFT) return -1e8;
+    if (t >= T_WOVEN) return 1e8;
+    return j0 + PA * (Math.exp(PK * (t - T_WEFT)) - 1);
+  }
+
+  /* ---------------------------------------------------------- GL + canvases */
+  const glc = document.createElement('canvas'); glc.width = W; glc.height = H;
+  const fab = new FC.FabricGL(glc);
+  const out = document.getElementById('out'), ctx = out.getContext('2d');
+  const ov = document.createElement('canvas'); ov.width = W; ov.height = H; const octx = ov.getContext('2d');
+  let loadedA = null, loadedB = null;
+  function loadSlot(slot, s) {
+    if ((slot === 'A' ? loadedA : loadedB) === s) return;
+    fab.setPattern(slot, s.pat); fab.setColors(slot, s.warp, s.weft);
+    if (slot === 'A') loadedA = s; else loadedB = s;
+  }
+  function weaveState(t) {
+    let i = 0; while (i + 1 < SEQ.length && t >= SEQ[i + 1].t) i++;
+    const cur = SEQ[i], prev = i > 0 ? SEQ[i - 1] : null, dur = cur.dur || 0.8;
+    if (prev && t < cur.t + dur) return { A: prev, B: cur, k: (t - cur.t) / dur, idx: i };
+    return { A: cur, B: cur, k: 1, idx: i };
+  }
+
+  /* ---------------------------------------------------------- shoe geometry */
+  const parts = {};
+  FC.SHOE.parts.forEach(p => { parts[p.id] = Object.assign({}, p, { path: new Path2D(p.d), subs: p.d.split('M').filter(s => s.trim()).map(s => new Path2D('M' + s)) }); });
+  const SS = 1.55, SOX = 960 - 497 * SS, SOY = 478 - 248 * SS;
+  const DIE_C = [260, 240];
+  const FLY = [
+    ['outsole', 21.2, [0, 520]], ['midsole', 21.35, [0, 480]], ['heel', 21.7, [-760, -40]], ['toecap', 21.85, [760, -20]],
+    ['collar', 22.1, [-520, -420]], ['tab', 22.25, [-440, -520]], ['tongue', 22.45, [60, -640]], ['saddle', 22.7, [0, -90]],
+    ['eyestay', 22.9, [320, -560]],
+  ];
+  const FLY_DUR = 0.55, LACE_T = [23.35, 24.45];
+  let SHAKE = 0;
+  function shoeTransform(c, t, extra) {
+    const z = zoomK(t);
+    const s = SS * z;
+    // scale about screen centre (matches the fabric camera zoom)
+    c.setTransform(s, 0, 0, s, 960 + (SOX - 960) * z, 540 + (SOY - 540) * z + SHAKE);
+    if (extra) c.transform(extra[0], 0, 0, extra[0], extra[1], extra[2]);
+  }
+  function fillPart(c, id) {
+    const p = parts[id];
+    if (id === 'midsole') { const g = c.createLinearGradient(0, 296, 0, 398); g.addColorStop(0, '#f6f5f0'); g.addColorStop(1, '#cfcdc5'); c.fillStyle = g; }
+    else if (id === 'heel') { const g = c.createLinearGradient(70, 180, 190, 300); g.addColorStop(0, '#5d6473'); g.addColorStop(1, '#262a33'); c.fillStyle = g; }
+    else c.fillStyle = p.fill;
+    if (p.stroke) {
+      c.lineCap = 'round';
+      c.strokeStyle = id === 'laces' ? '#11131a' : 'rgba(0,0,0,.3)'; c.lineWidth = id === 'laces' ? 9 : 14; c.stroke(p.path);
+      c.strokeStyle = p.fill; c.lineWidth = id === 'laces' ? 6 : 11; c.stroke(p.path);
+      return;
+    }
+    c.fill(p.path);
+    c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = 1.4; c.stroke(p.path);
+    c.strokeStyle = 'rgba(255,255,255,.07)'; c.lineWidth = 1; c.stroke(p.path);
+    if (id === 'midsole') { c.strokeStyle = 'rgba(0,0,0,.16)'; c.lineWidth = 2; c.stroke(new Path2D('M 118 346 C 260 354 520 368 700 368 C 780 368 840 358 884 338')); }
+    if (id === 'outsole') { c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 2; for (let x = 190; x < 720; x += 26) { c.beginPath(); c.moveTo(x, 386); c.lineTo(x - 6, 397); c.stroke(); } }
+    if (id === 'eyestay') FC.SHOE.eyelets.forEach(e => { c.fillStyle = '#cfd2d9'; c.beginPath(); c.arc(e[0], e[1], 6.5, 0, 7); c.fill(); c.fillStyle = '#0d1018'; c.beginPath(); c.arc(e[0], e[1], 3, 0, 7); c.fill(); });
+    if (id === 'toecap') { c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 2; c.lineCap = 'round'; c.stroke(new Path2D('M 822 306 C 860 308 896 310 912 315')); }
+    if (id === 'tongue') { c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = 3; c.setLineDash([2, 5]); c.stroke(new Path2D('M 312 150 C 314 126 326 112 344 108')); c.setLineDash([]); }
+  }
+
+  /* ---------------------------------------------------------- captions */
+  const CAPS = [
+    [0.35, 2.35, '紗', 'YARN · <b>一根紗</b>'],
+    [2.75, 6.3, '經', 'WARP · <b>經紗先上機，沿布長方向張緊</b>'],
+    [6.7, 10.85, '緯', 'WEFT · <b>梭子帶著緯紗，一緯一緯穿過去</b>'],
+    [11.15, 15.9, '組織', null],
+    [16.25, 19.35, '提花', 'JACQUARD · <b>字是織出來的，不是印上去的</b>'],
+    [19.7, 21.35, '裁斷', 'DIE-CUT · <b>把布沖成鞋面</b>'],
+    [21.55, 24.8, '成鞋', 'ASSEMBLY · <b>十二個部件，一雙鞋</b>'],
+  ];
+  const SPEC = 'JACQUARD · 五枚緞提花\n經 150D 金 × 緯 300D 靛 · 循環 215 × 120';
+  const SPEC_T = [16.95, 18.75];
+  const $ = id => document.getElementById(id);
+  const el = { mark: $('mark'), credit: $('credit'), cap: $('cap'), capBig: $('capBig'), capSub: $('capSub'), spec: $('spec'), counter: $('counter'), cnum: $('cnum'), quote: $('quote'), cite: $('cite'), fade: $('fade') };
+  function fadeWin(t, a, b, fi, fo) { return ss(a, a + (fi || 0.35), t) * (1 - ss(b - (fo || 0.35), b, t)); }
+
+  /* ---------------------------------------------------------- draft card */
+  function draftCard(c, st, t) {
+    const a = fadeWin(t, 11.15, 15.9);
+    if (a <= 0) return;
+    const pat = st.B.pat, n = 8, cell = 22, size = n * cell, x0 = W - 120 - size, y0 = H - 132 - size;
+    c.save(); c.globalAlpha = a;
+    c.fillStyle = 'rgba(236,233,224,0.94)'; c.fillRect(x0 - 14, y0 - 14, size + 28, size + 54);
+    const drawn = st.k >= 1 ? n * n : Math.floor(eo(st.k) * n * n);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const i = (n - 1 - y) * n + x;
+      const on = pat.cells[(y % pat.h) * pat.w + (x % pat.w)];
+      const showB = i < drawn;
+      const src = showB ? pat : st.A.pat;
+      const v = src.cells[(y % src.h) * src.w + (x % src.w)];
+      if (v) { c.fillStyle = showB ? '#161C2C' : 'rgba(22,28,44,.35)'; c.fillRect(x0 + x * cell + 1, y0 + (n - 1 - y) * cell + 1, cell - 1, cell - 1); }
+      void on;
+    }
+    c.strokeStyle = '#A3AFA2'; c.lineWidth = 1;
+    for (let i = 0; i <= n; i++) { c.beginPath(); c.moveTo(x0 + i * cell + 0.5, y0); c.lineTo(x0 + i * cell + 0.5, y0 + size); c.moveTo(x0, y0 + i * cell + 0.5); c.lineTo(x0 + size, y0 + i * cell + 0.5); c.stroke(); }
+    c.strokeStyle = '#C23A2E'; c.lineWidth = 2.5;
+    const rw = Math.min(n, pat.w), rh = Math.min(n, pat.h);
+    c.strokeRect(x0 + 1, y0 + (n - rh) * cell + 1, rw * cell - 1, rh * cell - 1);
+    c.fillStyle = '#4A5266'; c.font = '500 15px "JetBrains Mono", monospace'; c.textAlign = 'left';
+    c.fillText('組織圖 ' + st.B.zh + ' ' + pat.w + '×' + pat.h, x0, y0 + size + 28);
+    c.restore();
+  }
+
+  /* ---------------------------------------------------------- render */
+  function renderAt(t) {
+    t = clamp(t, 0, DUR - 1e-4);
+    const cam = camAt(t);
+    const st = weaveState(t);
+    loadSlot('A', st.A); loadSlot('B', st.B);
+
+    // morph front across the visible area
+    const dir = [0.86, 0.51];
+    let morph = -1e9, morphGlow = 0;
+    if (st.k < 1) {
+      const cs = [[-W / 2, -H / 2], [W / 2, -H / 2], [-W / 2, H / 2], [W / 2, H / 2]].map(c => proj(c[0], c[1], cam)).filter(Boolean).map(p => p[0] * dir[0] + p[1] * dir[1]);
+      const mn = Math.min(...cs) - 8, mx = Math.max(...cs) + 8;
+      morph = lerp(mn, mx, eio(st.k));
+      morphGlow = Math.sin(Math.PI * clamp(st.k, 0, 1)) * 1.1;
+    }
+
+    // weaving
+    const P = picksAt(t);
+    let shuttle = [0, 1], shuttleGlow = 0;
+    if (t >= T_WEFT && t < T_WOVEN) {
+      const fp = Math.floor(P), frac = P - fp, d = FC.mod(fp, 2) === 0 ? 1 : -1;
+      const sy = rowToScreenY(fp + 0.5, cam);
+      const a = proj(-W / 2 - 60, sy, cam), b = proj(W / 2 + 60, sy, cam);
+      const x0 = Math.min(a[0], b[0]) - 2, x1 = Math.max(a[0], b[0]) + 2;
+      shuttle = [d > 0 ? lerp(x0, x1, frac) : lerp(x1, x0, frac), d];
+      shuttleGlow = 1 - ss(9.6, 10.5, t);
+    }
+
+    // warp reveal (scene 1–2)
+    const reveal = t < 2.6 ? 0 : t > 6.4 ? 1e8 : Math.pow(seg(t, 2.6, 5.4), 1.7) * (1.7 * W / 2 / cam.cellPx) + 0.0;
+    const dropY = t < 2.4 ? lerp(cam.center[1] + H / 2 / cam.cellPx + 0.4, cam.center[1] - H / 2 / cam.cellPx - 0.4, eio(seg(t, 0.15, 1.9))) : -1e8;
+
+    // light (screen px, y down) → GL (y up)
+    let lx, ly, lh;
+    if (t < 2.6) { lx = lerp(0.22, 0.7, eio(seg(t, 0, 2.6))) * W; ly = lerp(0.2, 0.42, seg(t, 0, 2.6)) * H; lh = 3.2; }
+    else if (t < 11) { lx = (0.5 + 0.3 * Math.sin(t * 0.7)) * W; ly = (0.38 + 0.1 * Math.cos(t * 0.5)) * H; lh = 12; }
+    else if (t < 16.3) { lx = (0.5 + 0.36 * Math.sin((t - 11) * 1.7)) * W; ly = (0.4 + 0.16 * Math.cos((t - 11) * 1.2)) * H; lh = 16; }
+    else if (t < 19.6) { lx = lerp(0.06, 0.94, eio(seg(t, 16.4, 19.4))) * W; ly = 0.36 * H; lh = 20; }
+    else { lx = 0.34 * W; ly = 0.22 * H; lh = 40; }
+
+    const cur = st.B, prv = st.A, mk = st.k < 1 ? eio(st.k) : 1;
+    fab.render({
+      center: cam.center, cellPx: cam.cellPx, tilt: cam.tilt, roll: cam.roll, aspect: 1,
+      warpW: lerp(prv.ww, cur.ww, mk), weftW: lerp(prv.fw, cur.fw, mk), crimp: 0.23,
+      light: [lx, H - ly], lightH: lh,
+      morph, morphDir: dir, morphNoise: 3.0, morphGlow, glow: [1.0, 0.58, 0.28],
+      progress: P, shuttle, shuttleGlow, shed: t >= T_WEFT && t < T_WOVEN ? 1 : 0,
+      reveal: [0, reveal], dropY,
+      bg: [0.0012, 0.0014, 0.0026], exposure: 1.6, spec: 1, fog: 0.3 * cam.tilt, aa: 2, ridge: ss(28, 150, cam.cellPx),
+    });
+
+    // ---- composite
+    const shake = t > 21 && t < 21.4 ? Math.sin((t - 21) * 70) * 9 * Math.exp(-(t - 21) * 9) : 0;
+    SHAKE = shake;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    ctx.setTransform(1, 0, 0, 1, 0, shake);
+    ctx.drawImage(glc, 0, 0);
+
+    // scene 1: glowing tip of the falling yarn
+    if (t < 2.4) {
+      const tipY = H / 2 - (dropY - cam.center[1]) * cam.cellPx;
+      const g = ctx.createRadialGradient(W / 2, tipY, 0, W / 2, tipY, 150);
+      const a = 0.32 * (1 - ss(1.6, 2.3, t));
+      g.addColorStop(0, `rgba(255,214,170,${a})`); g.addColorStop(1, 'rgba(255,200,150,0)');
+      ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // die-cut + assembly
+    if (t >= 20.05) {
+      const k = seg(t, 20.05, 21.0);
+      const s = t < 21 ? 1 + 13 * Math.pow(1 - k, 2.6) : 1;
+      const dieExtra = [s, DIE_C[0] * (1 - s), DIE_C[1] * (1 - s)];
+      // shading on the fabric inside the upper
+      ctx.save(); shoeTransform(ctx, t, dieExtra);
+      ctx.clip(parts.upper.path);
+      ctx.setTransform(1, 0, 0, 1, 0, shake);
+      if (t >= 21) {
+        const g = ctx.createLinearGradient(0, SOY + 140 * SS, 0, SOY + 340 * SS);
+        g.addColorStop(0, 'rgba(255,255,255,0.10)'); g.addColorStop(0.5, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.5)');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      }
+      ctx.restore();
+
+      // overlay: black ground with a hole the shape of the upper
+      octx.setTransform(1, 0, 0, 1, 0, 0); octx.globalCompositeOperation = 'source-over';
+      octx.clearRect(0, 0, W, H);
+      octx.fillStyle = '#030408'; octx.fillRect(0, 0, W, H);
+      // floor light
+      if (t >= 21) {
+        const fa = ss(21, 22, t);
+        const fg = octx.createRadialGradient(960, SOY + 404 * SS, 0, 960, SOY + 404 * SS, 820);
+        fg.addColorStop(0, `rgba(120,130,160,${0.16 * fa})`); fg.addColorStop(1, 'rgba(120,130,160,0)');
+        octx.save(); octx.translate(0, 0); octx.scale(1, 0.22); octx.fillStyle = fg;
+        octx.fillRect(0, (SOY + 404 * SS) / 0.22 - 900, W, 1800); octx.restore();
+      }
+      // tongue sits behind the upper → draw before punching the hole
+      drawFlying(octx, t, 'tongue');
+      octx.save(); shoeTransform(octx, t, dieExtra);
+      octx.globalCompositeOperation = 'destination-out'; octx.fill(parts.upper.path);
+      octx.restore();
+      ['outsole', 'midsole'].forEach(id => drawFlying(octx, t, id));
+      // midsole must sit in front of the upper's lower edge
+      ['heel', 'toecap', 'collar', 'tab', 'saddle', 'eyestay'].forEach(id => drawFlying(octx, t, id));
+      drawLaces(octx, t);
+      // die edge: steel rule + impact flash
+      if (t < 21.5) {
+        octx.save(); shoeTransform(octx, t, dieExtra);
+        const flash = t >= 21 ? Math.exp(-(t - 21) * 7) : 0;
+        const pre = t < 21 ? ss(20.05, 20.4, t) : 0;
+        octx.lineJoin = 'round';
+        if (pre > 0) { octx.strokeStyle = `rgba(214,220,232,${0.85 * pre})`; octx.lineWidth = 3.2 / (SS * s); octx.stroke(parts.upper.path); }
+        if (flash > 0.01) { octx.shadowColor = 'rgba(255,220,170,1)'; octx.shadowBlur = 40; octx.strokeStyle = `rgba(255,236,210,${flash})`; octx.lineWidth = 5 / SS; octx.stroke(parts.upper.path); }
+        octx.restore();
+      }
+      ctx.drawImage(ov, 0, 0);
+
+      // light sweep over the finished shoe
+      if (t > 24.8 && t < 26.6) {
+        const k2 = eio(seg(t, 24.8, 26.4));
+        ctx.save(); shoeTransform(ctx, t);
+        const clip = new Path2D();
+        ['upper', 'midsole', 'outsole', 'toecap', 'heel', 'eyestay', 'collar', 'tongue'].forEach(id => clip.addPath(parts[id].path));
+        ctx.clip(clip);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        const bx = lerp(-300, W + 300, k2);
+        const g = ctx.createLinearGradient(bx - 220, 0, bx + 220, 0);
+        g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,250,240,0.28)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g;
+        ctx.transform(1, 0, -0.35, 1, 200, 0); ctx.fillRect(-400, 0, W + 800, H);
+        ctx.restore();
+      }
+    }
+
+    // glossy floor: mirror the shoe below the ground line
+    if (t >= 21.3) {
+      const z = zoomK(t), gy = 540 + (SOY + 399 * SS - 540) * z + SHAKE, hh = 230;
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 0.2 * ss(21.3, 22.2, t);
+      ctx.translate(0, gy * 2); ctx.scale(1, -1);
+      ctx.drawImage(out, 0, gy - hh, W, hh, 0, gy - hh, W, hh);
+      ctx.restore();
+      const fg = ctx.createLinearGradient(0, gy, 0, gy + hh);
+      fg.addColorStop(0, 'rgba(3,4,8,0.15)'); fg.addColorStop(0.55, 'rgba(3,4,8,0.85)'); fg.addColorStop(1, 'rgba(3,4,8,1)');
+      ctx.fillStyle = fg; ctx.fillRect(0, gy + 1, W, hh);
+    }
+
+    // vignette
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 1.05);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.62)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+    draftCard(ctx, st, t);
+
+    // selvedge progress line along the bottom
+    ctx.globalAlpha = 0.5 * fadeWin(t, 0.4, 29.3, 0.5, 0.5);
+    ctx.fillStyle = 'rgba(236,233,224,.25)';
+    for (let x = 120; x < W - 120; x += 6) ctx.fillRect(x, H - 54, 1, 7);
+    ctx.fillStyle = '#E25A4D'; ctx.fillRect(120, H - 51, (W - 240) * (t / DUR), 2);
+    ctx.globalAlpha = 1;
+
+    // ---- DOM text
+    const markA = fadeWin(t, 0.6, 29.3, 0.6, 0.6);
+    el.mark.style.opacity = markA * 0.9; el.credit.style.opacity = markA * 0.9;
+    let ca = 0;
+    for (const c of CAPS) {
+      if (t >= c[0] - 0.01 && t <= c[1]) {
+        ca = fadeWin(t, c[0], c[1]);
+        if (el.capBig.textContent !== c[2]) el.capBig.textContent = c[2];
+        const sub = c[3] || `WEAVE · <b>${st.B.zh}</b>　${st.B.en}`;
+        if (el.capSub.innerHTML !== sub) el.capSub.innerHTML = sub;
+        el.cap.style.transform = `translateY(${(1 - ss(c[0], c[0] + 0.5, t)) * 18}px)`;
+      }
+    }
+    el.cap.style.opacity = ca;
+    const sk = seg(t, SPEC_T[0], SPEC_T[1]);
+    el.spec.textContent = SPEC.slice(0, Math.round(sk * SPEC.length));
+    el.spec.style.opacity = fadeWin(t, SPEC_T[0], 19.35, 0.15, 0.35);
+    const cnt = Math.round(20000 * eo(seg(t, 25.3, 26.75)));
+    el.cnum.textContent = cnt.toLocaleString('en-US');
+    el.counter.style.opacity = fadeWin(t, 25.2, 27.15, 0.3, 0.35);
+    el.counter.style.transform = `translateY(${-ss(26.8, 27.15, t) * 24}px)`;
+    el.quote.style.opacity = ss(27.15, 27.85, t);
+    el.quote.style.transform = `translateY(${(1 - ss(27.15, 27.85, t)) * 14}px)`;
+    el.cite.style.opacity = ss(27.8, 28.4, t);
+    el.fade.style.opacity = ss(29.35, 30, t) + (1 - ss(0, 0.35, t));
+  }
+
+  function drawFlying(c, t, id) {
+    const f = FLY.find(x => x[0] === id);
+    if (!f || t < f[1]) return;
+    const k = seg(t, f[1], f[1] + FLY_DUR);
+    const e = id === 'saddle' ? eo(k) : backOut(k);
+    c.save();
+    shoeTransform(c, t);
+    const s = SS * zoomK(t);
+    c.translate(f[2][0] * (1 - e) / s, f[2][1] * (1 - e) / s);
+    c.globalAlpha = ss(0, 0.3, k);
+    fillPart(c, id);
+    c.restore();
+  }
+  function drawLaces(c, t) {
+    if (t < LACE_T[0]) return;
+    const subs = parts.laces.subs, n = subs.length;
+    c.save(); shoeTransform(c, t);
+    c.lineCap = 'round';
+    subs.forEach((p, i) => {
+      const a = lerp(LACE_T[0], LACE_T[1], i / n), b = a + (LACE_T[1] - LACE_T[0]) / n * 1.6;
+      const k = eo(seg(t, a, b));
+      if (k <= 0) return;
+      const L = 220;
+      c.setLineDash([L * k, L]);
+      c.strokeStyle = '#11131a'; c.lineWidth = 9; c.stroke(p);
+      c.strokeStyle = '#f2f0ea'; c.lineWidth = 6; c.stroke(p);
+    });
+    c.restore();
+  }
+
+  /* ---------------------------------------------------------- cues for the soundtrack */
+  const picks = [];
+  for (let n = 1; ; n++) {
+    const tt = T_WEFT + Math.log(1 + n / PA) / PK;
+    if (tt >= T_WOVEN - 0.05) break;
+    picks.push([+tt.toFixed(4), FC.mod(j0 + n - 1, 2) === 0 ? 1 : -1]);
+  }
+  const specChars = [];
+  for (let i = 1; i <= SPEC.length; i++) if (SPEC[i - 1] !== '\n' && SPEC[i - 1] !== ' ') specChars.push(+(SPEC_T[0] + (i - 0.5) / SPEC.length * (SPEC_T[1] - SPEC_T[0])).toFixed(4));
+  const countTicks = [];
+  for (let k = 1; k <= 20; k++) { // invert eo(seg) for each thousand step
+    const x = 1 - Math.cbrt(1 - k / 20);
+    countTicks.push(+(25.3 + x * (26.75 - 25.3)).toFixed(4));
+  }
+  window.CUES = {
+    duration: DUR, picks, weft: T_WEFT, woven: T_WOVEN,
+    switches: SEQ.slice(1).map(s => s.t),
+    dieStart: 20.05, impact: 21.0,
+    lands: FLY.map(f => +(f[1] + FLY_DUR * 0.62).toFixed(3)),
+    laces: LACE_T, spec: specChars, count: countTicks, quote: 27.15, sweep: 24.8, fadeOut: 29.35,
+  };
+  window.renderAt = renderAt;
+  renderAt(0);
+  window.FILM_READY = true;
+
+  /* ---------------------------------------------------------- live preview */
+  if (!capture) {
+    const stage = document.getElementById('stage');
+    const fit = () => { const s = Math.min(innerWidth / W, innerHeight / H); stage.style.transform = `scale(${s})`; };
+    fit(); addEventListener('resize', fit);
+    let t0 = performance.now();
+    const btn = document.createElement('button'); btn.id = 'play'; btn.textContent = '重播'; document.body.appendChild(btn);
+    btn.onclick = () => { t0 = performance.now(); };
+    const loop = now => { renderAt(((now - t0) / 1000) % DUR); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  }
+})();
+</script>
