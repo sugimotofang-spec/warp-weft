@@ -1,6 +1,7 @@
 """Render 經緯 Warp & Weft (film.html) to a 30 s 1080p MP4 with a synthesized soundtrack.
 
-    python render_film.py                 # full render → 經緯_WarpWeft_30s.mp4
+    python render_film.py                 # Chinese cut  → 經緯_WarpWeft_30s.mp4
+    python render_film.py --lang en       # English cut  → Warp-and-Weft_30s_EN.mp4
     python render_film.py --stills 1,5,9  # single frames for checking composition
 
 Frames are drawn deterministically by window.renderAt(t) in headless Chrome
@@ -15,13 +16,14 @@ FPS, DUR, W, H = 30, 30, 1920, 1080
 CHROME_ARGS = ["--enable-gpu", "--use-angle=d3d11", "--ignore-gpu-blocklist", "--allow-file-access-from-files"]
 
 
-def open_film(p):
+def open_film(p, lang):
     browser = p.chromium.launch(channel="chrome", headless=True, args=CHROME_ARGS)
     page = browser.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
-    page.goto((HERE / "film.html").as_uri() + "?capture=1")
+    query = "?capture=1" + ("&lang=en" if lang == "en" else "")
+    page.goto((HERE / "film.html").as_uri() + query)
     page.wait_for_function("window.FILM_READY === true", timeout=60000)
     page.wait_for_timeout(500)
     return browser, page, errors
@@ -30,15 +32,17 @@ def open_film(p):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stills", help="comma-separated times in seconds")
-    ap.add_argument("--out", default=str(HERE / "經緯_WarpWeft_30s.mp4"))
+    ap.add_argument("--lang", choices=["zh", "en"], default="zh")
+    ap.add_argument("--out", default=None)
     ap.add_argument("--frames", default=None, help="directory for intermediate PNG frames")
     ap.add_argument("--still-dir", default=None)
     a = ap.parse_args()
+    cues_file = HERE / ("cues.json" if a.lang == "zh" else "cues_en.json")
 
     with sync_playwright() as p:
-        browser, page, errors = open_film(p)
+        browser, page, errors = open_film(p, a.lang)
         cues = page.evaluate("window.CUES")
-        (HERE / "cues.json").write_text(json.dumps(cues, ensure_ascii=False, indent=1), encoding="utf-8")
+        cues_file.write_text(json.dumps(cues, ensure_ascii=False, indent=1), encoding="utf-8")
 
         if a.stills:
             sd = Path(a.still_dir or tempfile.gettempdir())
@@ -67,14 +71,15 @@ def main():
         browser.close()
 
     # soundtrack from the same cue sheet
-    subprocess.run([sys.executable, str(HERE / "soundtrack.py"), str(HERE / "cues.json"), str(frames / "soundtrack.wav")], check=True)
+    subprocess.run([sys.executable, str(HERE / "soundtrack.py"), str(cues_file), str(frames / "soundtrack.wav")], check=True)
 
+    out = a.out or str(HERE / ("經緯_WarpWeft_30s.mp4" if a.lang == "zh" else "Warp-and-Weft_30s_EN.mp4"))
     ffmpeg = shutil.which("ffmpeg") or "ffmpeg"
     cmd = [ffmpeg, "-y", "-framerate", str(FPS), "-i", str(frames / "f%04d.png"), "-i", str(frames / "soundtrack.wav"),
            "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-profile:v", "high",
-           "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", a.out]
+           "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", out]
     subprocess.run(cmd, check=True)
-    print("wrote", a.out)
+    print("wrote", out)
 
 
 if __name__ == "__main__":

@@ -46,6 +46,7 @@
   }
 
   // Satin damask: figure = warp-faced 5-end satin, ground = weft-faced 5-end satin.
+  // `text` may hold several lines separated by a newline character.
   function jacquard(text, w, h, opts) {
     opts = opts || {};
     const cv = document.createElement('canvas');
@@ -55,12 +56,14 @@
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const family = opts.font || '"Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif';
     const weight = opts.weight || 900;
-    let size = h * (opts.fill || 0.62);
+    const lines = String(text).split('\n'), LH = 1.14;
+    let size = (h * (opts.fill || 0.62)) / (1 + (lines.length - 1) * LH);
     ctx.font = weight + ' ' + size + 'px ' + family;
-    const mw = ctx.measureText(text).width;
+    const mw = Math.max(...lines.map(l => ctx.measureText(l).width));
     const maxW = w * (opts.maxW || 0.88);
     if (mw > maxW) { size *= maxW / mw; ctx.font = weight + ' ' + size + 'px ' + family; }
-    ctx.fillText(text, w / 2, h * (opts.cy || 0.52));
+    const cy = h * (opts.cy || 0.52);
+    lines.forEach((l, i) => ctx.fillText(l, w / 2, cy + (i - (lines.length - 1) / 2) * size * LH));
     const d = ctx.getImageData(0, 0, w, h).data;
     const cells = new Uint8Array(w * h);
     for (let y = 0; y < h; y++) {
@@ -541,6 +544,23 @@ void main() {
     d += `M ${top[0] - 2} ${top[1] - 2} C ${top[0] - 20} ${top[1] + 20} ${top[0] - 34} ${top[1] + 44} ${top[0] - 28} ${top[1] + 62} `;
     SHOE.parts.find(p => p.id === 'laces').d = d;
   })();
+
+  // English material notes for the shoe parts (the Chinese ones live on the part objects).
+  const SHOE_EN = {
+    outsole: ['Rubber', 'Touches the ground for grip. The toe-up shape gives a rolling feel'],
+    midsole: ['EVA or supercritical foam', 'Cushions and returns energy. Its thickness sets the feel underfoot'],
+    insole: ['PU foam with a knit cover', 'Sits right under the foot, wicks moisture and adds a layer of cushion'],
+    upper: ['Textile: engineered mesh, jacquard or canvas', 'The fabric you wove in the lab is cut here'],
+    saddle: ['Seamless TPU film', 'Locks the midfoot without stitching'],
+    toecap: ['TPU hot-melt film or synthetic leather', 'Resists abrasion and toe stubs'],
+    heel: ['TPU reinforcement', 'Wraps the heel for a stable landing'],
+    eyestay: ['Synthetic leather with eyelets', 'Spreads the lacing load'],
+    tongue: ['Mesh and foam', 'Keeps lace pressure off the foot'],
+    collar: ['Foam with knit lining', 'Wraps the ankle without rubbing'],
+    tab: ['Webbing', 'Something to pull when putting the shoe on'],
+    laces: ['Braided polyester', 'Flat laces stay tied better than round ones'],
+  };
+  SHOE.parts.forEach(p => { const e = SHOE_EN[p.id]; p.matEn = e[0]; p.noteEn = e[1]; });
 
   global.FabricCore = {
     WEAVES, weave, make, invert, resize, jacquard, measureJacquard,

@@ -44,6 +44,7 @@
   const FC = window.FabricCore;
   const W = 1920, H = 1080, DUR = 30;
   const capture = /capture/.test(location.search);
+  const EN = /lang=en/.test(location.search);
 
   /* ---------------------------------------------------------- math */
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -94,7 +95,9 @@
   const DENIM = ['#1D2B57', '#21305E', '#1A2650', '#243461', '#1F2D5A', '#22315C', '#1C2954'];
   const GOLD = ['#C9A04A', '#C49A45', '#CFA752', '#C69D48'];
   const JQ_W = 215, JQ_H = 120;
-  const jq = FC.jacquard('為兩萬步而織', JQ_W, JQ_H, { fill: 0.4, maxW: 0.9, cy: 0.44, weight: 700, font: '"Noto Sans TC", "Microsoft JhengHei", sans-serif' });
+  const jq = EN
+    ? FC.jacquard('WOVEN FOR\n20,000 STEPS', JQ_W, JQ_H, { fill: 0.86, maxW: 0.9, cy: 0.37, weight: 900, font: '"Noto Sans TC", "Microsoft JhengHei", sans-serif' })
+    : FC.jacquard('為兩萬步而織', JQ_W, JQ_H, { fill: 0.4, maxW: 0.9, cy: 0.44, weight: 700, font: '"Noto Sans TC", "Microsoft JhengHei", sans-serif' });
   const rip = FC.colorOrder('ripstop', '#25357A', '#1E2C66');
   const hound = FC.colorOrder('44', '#16171B', '#ECE8DF');
   const SEQ = [
@@ -199,7 +202,15 @@
   }
 
   /* ---------------------------------------------------------- captions */
-  const CAPS = [
+  const CAPS = EN ? [
+    [0.35, 2.35, 'YARN', 'YARN · <b>one yarn</b>'],
+    [2.75, 6.3, 'WARP', 'WARP · <b>warp ends go on the loom first, held under tension</b>'],
+    [6.7, 10.85, 'WEFT', 'WEFT · <b>the shuttle carries the weft across, one pick at a time</b>'],
+    [11.15, 15.9, 'STRUCTURE', null],
+    [16.25, 19.35, 'JACQUARD', 'SATIN DAMASK · <b>the words are woven in, not printed on</b>'],
+    [19.7, 21.35, 'CUT', 'DIE-CUT · <b>the fabric becomes a shoe upper</b>'],
+    [21.55, 24.8, 'BUILD', 'ASSEMBLY · <b>twelve parts, one shoe</b>'],
+  ] : [
     [0.35, 2.35, '紗', 'YARN · <b>一根紗</b>'],
     [2.75, 6.3, '經', 'WARP · <b>經紗先上機，沿布長方向張緊</b>'],
     [6.7, 10.85, '緯', 'WEFT · <b>梭子帶著緯紗，一緯一緯穿過去</b>'],
@@ -208,9 +219,17 @@
     [19.7, 21.35, '裁斷', 'DIE-CUT · <b>把布沖成鞋面</b>'],
     [21.55, 24.8, '成鞋', 'ASSEMBLY · <b>十二個部件，一雙鞋</b>'],
   ];
-  const SPEC = 'JACQUARD · 五枚緞提花\n經 150D 金 × 緯 300D 靛 · 循環 215 × 120';
+  const SPEC = EN ? 'JACQUARD · 5-END SATIN DAMASK\nWARP 150D GOLD × WEFT 300D INDIGO · REPEAT 215 × 120'
+                  : 'JACQUARD · 五枚緞提花\n經 150D 金 × 緯 300D 靛 · 循環 215 × 120';
   const SPEC_T = [16.95, 18.75];
   const $ = id => document.getElementById(id);
+  if (EN) {
+    document.documentElement.lang = 'en';
+    $('quote').innerHTML = 'Good material design is something you only<br>truly appreciate after 20,000 steps.';
+    $('quote').style.cssText += ';top:806px;font-size:46px;line-height:1.3;letter-spacing:.02em';
+    $('cite').style.top = '944px';
+    document.querySelector('#counter small').textContent = 'steps';
+  }
   const el = { mark: $('mark'), credit: $('credit'), cap: $('cap'), capBig: $('capBig'), capSub: $('capSub'), spec: $('spec'), counter: $('counter'), cnum: $('cnum'), quote: $('quote'), cite: $('cite'), fade: $('fade') };
   function fadeWin(t, a, b, fi, fo) { return ss(a, a + (fi || 0.35), t) * (1 - ss(b - (fo || 0.35), b, t)); }
 
@@ -237,7 +256,7 @@
     const rw = Math.min(n, pat.w), rh = Math.min(n, pat.h);
     c.strokeRect(x0 + 1, y0 + (n - rh) * cell + 1, rw * cell - 1, rh * cell - 1);
     c.fillStyle = '#4A5266'; c.font = '500 15px "JetBrains Mono", monospace'; c.textAlign = 'left';
-    c.fillText('組織圖 ' + st.B.zh + ' ' + pat.w + '×' + pat.h, x0, y0 + size + 28);
+    c.fillText((EN ? 'DRAFT ' + st.B.en : '組織圖 ' + st.B.zh) + ' ' + pat.w + '×' + pat.h, x0, y0 + size + 28);
     c.restore();
   }
 
@@ -414,7 +433,7 @@
       if (t >= c[0] - 0.01 && t <= c[1]) {
         ca = fadeWin(t, c[0], c[1]);
         if (el.capBig.textContent !== c[2]) el.capBig.textContent = c[2];
-        const sub = c[3] || `WEAVE · <b>${st.B.zh}</b>　${st.B.en}`;
+        const sub = c[3] || (EN ? `WEAVE · <b>${st.B.en}</b>` : `WEAVE · <b>${st.B.zh}</b>　${st.B.en}`);
         if (el.capSub.innerHTML !== sub) el.capSub.innerHTML = sub;
         el.cap.style.transform = `translateY(${(1 - ss(c[0], c[0] + 0.5, t)) * 18}px)`;
       }

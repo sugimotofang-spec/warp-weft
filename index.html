@@ -46,6 +46,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { background: var(--paper); color: var(--ink); font: 400 16px/1.7 var(--font-body); -webkit-font-smoothing: antialiased; }
 .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; }
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -247,6 +248,18 @@ footer .wrap { display: grid; gap: 6px; }
   .hero-top nav { display: none; }
   section { padding-block: 56px 60px; }
 }
+.hero-top .rt { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.langseg { display: inline-flex; border: 1px solid rgba(236, 233, 224, 0.35); background: rgba(10, 13, 22, 0.45); }
+.langseg button { background: transparent; border: 0; border-left: 1px solid rgba(236, 233, 224, 0.2); padding: 5px 11px; color: var(--on-stage-2); font: 500 12px/1.4 var(--font-mono); letter-spacing: .08em; cursor: pointer; }
+.langseg button:first-child { border-left: 0; }
+.langseg button:hover { color: var(--on-stage); }
+.langseg button[aria-pressed="true"] { background: var(--on-stage); color: var(--stage); }
+:root[lang="en"] .h1-zh { order: 2; font: 500 clamp(13px, 1.4vw, 16px)/1 var(--font-mono); letter-spacing: .32em; color: var(--on-stage-2); }
+:root[lang="en"] .h1-en { order: 1; font: 900 clamp(52px, 10.5vw, 150px)/0.9 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--on-stage); }
+:root[lang="en"] .h1-en { padding-bottom: 0.14em; }
+:root[lang="en"] .legend b small { display: none; }
+:root[lang="en"] .sec-head h2 { letter-spacing: 0; }
+:root[lang="en"] .counter small { letter-spacing: 0; }
 @media (prefers-reduced-motion: reduce) {
   .switch::after, #shoe .part { transition: none; }
 }
@@ -257,15 +270,18 @@ footer .wrap { display: grid; gap: 6px; }
   <div class="nogl-msg">這個瀏覽器沒有開啟 WebGL2，看不到即時織布。換用新版 Chrome、Edge 或 Safari 即可。</div>
   <div class="wrap hero-top">
     <a href="#top">經緯 · Warp &amp; Weft</a>
-    <nav aria-label="章節">
-      <a href="#lab">組織實驗室</a><a href="#drape">懸垂</a><a href="#anatomy">鞋面解剖</a><a href="#steps">兩萬步</a><a href="#film">影片</a>
-    </nav>
+    <div class="rt">
+      <nav aria-label="章節">
+        <a href="#lab">組織實驗室</a><a href="#drape">懸垂</a><a href="#anatomy">鞋面解剖</a><a href="#steps">兩萬步</a><a href="#film">影片</a>
+      </nav>
+      <div class="langseg" role="group" aria-label="Language"><button id="langZh" lang="zh-Hant" aria-pressed="true">中文</button><button id="langEn" lang="en" aria-pressed="false">EN</button></div>
+    </div>
   </div>
   <div class="wrap hero-copy">
     <p class="eyebrow">一根紗如何變成一雙鞋</p>
     <h1><span class="h1-zh">經緯</span><span class="h1-en">Warp &amp; Weft</span></h1>
     <p class="lede">這是一台即時運算的織布機。每一根紗的屈曲、撚度和光澤，都是從組織圖算出來的。移動滑鼠就是移動燈。</p>
-    <p class="live"><span><span class="dot"></span><b>織造中</b></span><span>3/1 右斜紋 · 靛藍經 × 本白緯（丹寧）</span><span>已織 <b id="heroPicks">0</b> 緯</span></p>
+    <p class="live"><span><span class="dot"></span><b>織造中</b></span><span>3/1 右斜紋 · 靛藍經 × 本白緯（丹寧）</span><span id="picksLine"></span></p>
   </div>
 </header>
 <div class="selvedge" aria-hidden="true"></div>
@@ -419,14 +435,14 @@ footer .wrap { display: grid; gap: 6px; }
     <div class="sec-head">
       <span class="sec-no">06</span>
       <h2>三十秒版本</h2>
-      <p>同一支著色器逐格算出來的短片：一根紗、經、緯、組織、提花、裁斷、成鞋。配樂也是程式合成的，梭子往哪邊跑，打緯聲就從哪一邊出來。</p>
+      <p>布面由同一支著色器逐格算出來的短片：一根紗、經、緯、組織、提花、裁斷、成鞋。配樂也是程式合成的，梭子往哪邊跑，打緯聲就從哪一邊出來。</p>
     </div>
     <div class="film-frame">
       <video id="filmVideo" controls playsinline preload="metadata" poster="film-poster.jpg" src="warp-weft-30s.mp4" aria-label="經緯 30 秒影片"></video>
-      <p class="nofilm" id="noFilm" hidden>影片沒有載入成功。1080p 原始檔在桌面「經緯_WarpWeft」資料夾：經緯_WarpWeft_30s.mp4。</p>
+      <p class="nofilm" id="noFilm" hidden>影片沒有載入成功，請重新整理頁面再試一次。</p>
     </div>
     <div class="film-notes">
-      <div><b>畫面</b><span>1920 × 1080、30 fps，900 格全部由 WebGL 著色器即時運算後逐格擷取。</span></div>
+      <div><b>畫面</b><span>1920 × 1080、30 fps，900 格逐格擷取，布面全部由 WebGL 著色器運算。</span></div>
       <div><b>聲音</b><span>Karplus-Strong 撥弦當作紗線，經紗散開時聲音也往左右展開；梭子的打緯聲隨方向左右聲道切換。</span></div>
       <div><b>字</b><span>「為兩萬步而織」是緞紋提花：字用經面緞、底用緯面緞織出來。</span></div>
     </div>
@@ -454,6 +470,104 @@ footer .wrap { display: grid; gap: 6px; }
   if (!hasGL) document.documentElement.classList.add('no-gl');
   const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const STAGE = [10 / 255, 13 / 255, 22 / 255];
+
+  /* =========================================================== language (zh / en) */
+  // Static markup is written in Chinese. EN maps each Chinese string to its English text and is
+  // applied to the text nodes and aria-labels found at load. Strings built by script use tr(zh, en).
+  let LANG = 'zh';
+  const tr = (zh, en) => (LANG === 'en' ? en : zh);
+  const langHooks = [];
+  const picks = { n: 0 };
+  function showPicks() {
+    const el = $('#picksLine'), c = picks.n.toLocaleString('en-US');
+    if (el) el.textContent = tr('已織 ' + c + ' 緯', c + ' picks woven');
+  }
+  const EN = {
+    '即時運算的織布機：丹寧 3/1 斜紋，梭子帶著緯紗一緯一緯織進來': 'A real-time loom weaving 3/1 denim twill. The shuttle carries the weft across, one pick at a time.',
+    '這個瀏覽器沒有開啟 WebGL2，看不到即時織布。換用新版 Chrome、Edge 或 Safari 即可。': 'WebGL2 is not available in this browser, so the live loom cannot run. Try a recent Chrome, Edge or Safari.',
+    '章節': 'Sections', '組織實驗室': 'Weave lab', '懸垂': 'Drape', '鞋面解剖': 'Shoe anatomy', '兩萬步': '20,000 steps', '影片': 'Film',
+    '一根紗如何變成一雙鞋': 'From a single yarn to a running shoe',
+    '這是一台即時運算的織布機。每一根紗的屈曲、撚度和光澤，都是從組織圖算出來的。移動滑鼠就是移動燈。': 'A loom that runs in real time. The crimp, twist and sheen of every yarn are computed from the weave diagram. Move the pointer to move the light.',
+    '織造中': 'Weaving',
+    '3/1 右斜紋 · 靛藍經 × 本白緯（丹寧）': '3/1 right-hand twill · indigo warp × natural weft (denim)',
+    '點組織圖上的格子、換紗線顏色、調丹尼和密度，左邊的布會即時重織。克重、覆蓋率和浮長都用紡織公式現算。': 'Click cells in the weave diagram, change the yarn colours, adjust denier and density, and the cloth on the left is rewoven live. Weight, cover and float length are calculated with textile formulas.',
+    '即時渲染的布面': 'Live-rendered fabric surface',
+    '需要 WebGL2 才能渲染布面。': 'WebGL2 is needed to render the fabric.',
+    '移動游標 = 打光': 'Move the pointer to move the light',
+    '克重': 'Weight', '盎司': 'Ounces', '覆蓋率': 'Cover', '平均浮長 經/緯': 'Avg float warp / weft', '組織循環': 'Repeat', '紗徑 經/緯': 'Yarn dia. warp / weft',
+    '結構指標雷達圖': 'Structure radar chart',
+    '聚酯長纖估算：密度 1.38 g/cm³、填充係數 0.75、屈曲率由交織密度推算。雷達圖由組織圖推算，屬示意。': 'Polyester filament estimate: density 1.38 g/cm³, packing factor 0.75, crimp derived from the interlacing density. The radar chart is derived from the weave diagram and is illustrative.',
+    '布種': 'Fabric', '組織圖 · 意匠': 'Weave diagram', '黑格＝經紗浮在上': 'Dark cell = warp on top',
+    '組織圖。方向鍵移動，空白鍵切換經組織點': 'Weave diagram. Arrow keys move, Space toggles a warp-up cell.',
+    '經循環': 'Warp repeat', '緯循環': 'Weft repeat',
+    '經循環減一': 'Decrease warp repeat', '經循環加一': 'Increase warp repeat', '緯循環減一': 'Decrease weft repeat', '緯循環加一': 'Increase weft repeat',
+    '正反面互換': 'Flip face and back',
+    '紗線': 'Yarn', '經紗': 'Warp', '緯紗': 'Weft', '色序': 'Colour order', '單色': 'Solid', '4:4 千鳥': '4:4 houndstooth', '格子強化紗': 'Ripstop yarn',
+    '規格': 'Spec', '經紗丹尼': 'Warp denier', '緯紗丹尼': 'Weft denier', '經密 根/吋': 'Warp ends / in', '緯密 根/吋': 'Weft picks / in', '放大倍率': 'Zoom',
+    '提花文字': 'Jacquard text', '緞紋提花 Damask': 'Satin damask', '開啟提花文字': 'Turn jacquard text on', '要織進布裡的文字': 'Text to weave into the cloth',
+    '字用經面五枚緞、底用緯面五枚緞，靠光澤和顏色差把字織出來。這是真正的提花組織，不是印上去的。': 'Letters are warp-faced 5-end satin and the ground is weft-faced 5-end satin, so sheen and colour difference draw the words. This is a true jacquard structure, not a print.',
+    '同一塊布掛起來。這裡用的是你在實驗室織的那塊，貼圖每次改動都會重新織一次。抓住布料拖拉，或打開風。': 'The same cloth, hung up. It uses the fabric you wove in the lab, and the texture is rewoven after every change. Grab the cloth and pull, or turn on the wind.',
+    '可拖拉的布料模擬': 'Draggable cloth simulation',
+    '需要 WebGL2 才能做布料模擬。': 'WebGL2 is needed for the cloth simulation.',
+    '掛法': 'Hang style', '整排夾': 'Full rail', '兩角': 'Two corners', '單角': 'One corner', '拖曳布料': 'Drag the cloth', '環境': 'Environment', '風': 'Wind', '重掛': 'Rehang',
+    '一雙跑鞋大約由十二個部件組成。往下捲，鞋子會拆開再組回去；鞋面用的就是你剛才織的布。': 'A running shoe is about twelve parts. Scroll and it comes apart and goes back together. The upper uses the fabric you just wove.',
+    '跑鞋側視爆炸圖': 'Exploded side view of a running shoe',
+    '步': 'steps',
+    '好的材料設計，是走完兩萬步之後，你才會真正感謝它的存在。': 'Good material design is something you only truly appreciate after 20,000 steps.',
+    'Fang Sugimoto ·〈五天十萬步，四雙鞋，零水泡〉· 2026': 'Fang Sugimoto · “Five days. 100,000 steps. Four pairs of shoes. Zero blisters.” · 2026',
+    '三十秒版本': 'The 30-second cut',
+    '布面由同一支著色器逐格算出來的短片：一根紗、經、緯、組織、提花、裁斷、成鞋。配樂也是程式合成的，梭子往哪邊跑，打緯聲就從哪一邊出來。': 'A short film whose fabric is drawn frame by frame by the same shader: yarn, warp, weft, structure, jacquard, die-cut, build. The soundtrack is synthesized too, and the clack of the loom pans to whichever side the shuttle is on.',
+    '經緯 30 秒影片': 'Warp & Weft, 30-second film',
+    '影片沒有載入成功，請重新整理頁面再試一次。': 'The film did not load. Reload the page and try again.',
+    '畫面': 'Picture', '聲音': 'Sound', '字': 'Words',
+    '1920 × 1080、30 fps，900 格逐格擷取，布面全部由 WebGL 著色器運算。': '1920 × 1080 at 30 fps. All 900 frames are captured one at a time, and every inch of fabric is computed by a WebGL shader.',
+    'Karplus-Strong 撥弦當作紗線，經紗散開時聲音也往左右展開；梭子的打緯聲隨方向左右聲道切換。': 'Karplus-Strong plucks stand in for yarn and spread left and right as the warp fans out. The clack of the loom pans with the shuttle.',
+    '「為兩萬步而織」是緞紋提花：字用經面緞、底用緯面緞織出來。': '“WOVEN FOR 20,000 STEPS” is satin damask: the letters are warp-faced and the ground is weft-faced.',
+    '物性數值以通用紡織公式估算，屬示意，不代表任何公司或產品的規格。': 'Physical values are estimated from generic textile formulas and are illustrative. They do not describe the specification of any company or product.',
+    '經緯 Warp & Weft · WebGL2 紗線級渲染、Verlet 布料模擬 · made with Claude for Fang Sugimoto': '經緯 Warp & Weft · WebGL2 yarn-level rendering, Verlet cloth simulation · made with Claude for Fang Sugimoto',
+  };
+  const bound = [];
+  const has = k => Object.prototype.hasOwnProperty.call(EN, k);
+  function collectStatic() {
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = w.nextNode())) {
+      const raw = node.nodeValue, key = raw.trim();
+      if (key && has(key) && node.parentNode.nodeName !== 'SCRIPT' && node.parentNode.nodeName !== 'STYLE') {
+        const at = raw.indexOf(key);
+        bound.push({ node, key, lead: raw.slice(0, at), trail: raw.slice(at + key.length) });
+      }
+    }
+    $$('[aria-label],[title]').forEach(el => ['aria-label', 'title'].forEach(a => {
+      const v = el.getAttribute(a);
+      if (v && has(v)) bound.push({ el, attr: a, key: v });
+    }));
+  }
+  function applyStatic() {
+    bound.forEach(b => {
+      const text = LANG === 'en' ? EN[b.key] : b.key;
+      if (b.node) b.node.nodeValue = b.lead + text + b.trail; else b.el.setAttribute(b.attr, text);
+    });
+  }
+  function detectLang() {
+    try { const q = new URLSearchParams(location.search).get('lang'); if (q === 'en' || q === 'zh') return q; } catch (e) { /* no query */ }
+    try { const v = localStorage.getItem('ww-lang'); if (v === 'en' || v === 'zh') return v; } catch (e) { /* storage blocked */ }
+    return /^zh/i.test(navigator.language || '') ? 'zh' : 'en';
+  }
+  function applyLang() {
+    document.documentElement.lang = LANG === 'en' ? 'en' : 'zh-Hant';
+    applyStatic();
+    langHooks.forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
+    $('#langZh').setAttribute('aria-pressed', String(LANG === 'zh'));
+    $('#langEn').setAttribute('aria-pressed', String(LANG === 'en'));
+    showPicks();
+    changed();
+  }
+  function setLang(l) {
+    LANG = l;
+    try { localStorage.setItem('ww-lang', l); } catch (e) { /* storage blocked */ }
+    applyLang();
+  }
 
   function visibility(el, cb) {
     const io = new IntersectionObserver(es => es.forEach(e => cb(e.isIntersecting)), { rootMargin: '120px' });
@@ -501,7 +615,7 @@ footer .wrap { display: grid; gap: 6px; }
         fog: 0.42, bg: STAGE, exposure: 1.55, aa: 1,
       });
       const woven = Math.floor(rate * t);
-      if (woven !== lastPicks) { lastPicks = woven; $('#heroPicks').textContent = woven.toLocaleString('en-US'); }
+      if (woven !== lastPicks) { lastPicks = woven; picks.n = woven; showPicks(); }
       if (running && !reduce) raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
@@ -515,20 +629,20 @@ footer .wrap { display: grid; gap: 6px; }
 
   /* =========================================================== lab state */
   const DYES = [
-    ['#E4DED0', '坯布'], ['#F3F2ED', '漂白'], ['#2F3E7A', '靛藍'], ['#1B2547', '深靛'], ['#26272C', '炭黑'],
-    ['#9A3B2C', '赭紅'], ['#5A6340', '橄欖'], ['#C9A04A', '香檳金'], ['#9DB4D8', '霧藍'], ['#6B2433', '酒紅'],
+    ['#E4DED0', '坯布', 'Greige'], ['#F3F2ED', '漂白', 'Bleached'], ['#2F3E7A', '靛藍', 'Indigo'], ['#1B2547', '深靛', 'Deep indigo'], ['#26272C', '炭黑', 'Charcoal'],
+    ['#9A3B2C', '赭紅', 'Rust'], ['#5A6340', '橄欖', 'Olive'], ['#C9A04A', '香檳金', 'Champagne'], ['#9DB4D8', '霧藍', 'Mist blue'], ['#6B2433', '酒紅', 'Burgundy'],
   ];
   const PRESETS = [
-    { id: 'canvas4', zh: '4 oz 帆布', weave: 'plain', warpDen: 300, weftDen: 300, epi: 54, ppi: 42, a: '#2F3E7A', b: '#E4DED0', order: 'solid' },
-    { id: 'plain', zh: '平紋', weave: 'plain', warpDen: 150, weftDen: 150, epi: 110, ppi: 90, a: '#9A3B2C', b: '#E4DED0', order: 'solid' },
-    { id: 'basket', zh: '方平', weave: 'basket', warpDen: 200, weftDen: 200, epi: 84, ppi: 76, a: '#1B2547', b: '#E4DED0', order: 'solid' },
-    { id: 'twill22', zh: '2/2 斜紋', weave: 'twill22', warpDen: 200, weftDen: 200, epi: 96, ppi: 80, a: '#6B2433', b: '#E4DED0', order: 'solid' },
-    { id: 'twill31', zh: '3/1 丹寧', weave: 'twill31', warpDen: 300, weftDen: 450, epi: 72, ppi: 46, a: '#1D2B57', b: '#ECE8DE', order: 'solid' },
-    { id: 'satin5', zh: '五枚緞', weave: 'satin5', warpDen: 75, weftDen: 150, epi: 220, ppi: 95, a: '#C9A04A', b: '#1B2547', order: 'solid' },
-    { id: 'satin8', zh: '八枚緞', weave: 'satin8', warpDen: 50, weftDen: 150, epi: 250, ppi: 90, a: '#9DB4D8', b: '#141826', order: 'solid' },
-    { id: 'herringbone', zh: '人字紋', weave: 'herringbone', warpDen: 300, weftDen: 300, epi: 70, ppi: 60, a: '#26272C', b: '#E4DED0', order: 'solid' },
-    { id: 'houndstooth', zh: '千鳥格', weave: 'houndstooth', warpDen: 300, weftDen: 300, epi: 64, ppi: 60, a: '#26272C', b: '#F3F2ED', order: '44' },
-    { id: 'ripstop', zh: '格子防裂', weave: 'ripstop', warpDen: 70, weftDen: 70, epi: 150, ppi: 130, a: '#5A6340', b: '#5A6340', order: 'ripstop' },
+    { id: 'canvas4', zh: '4 oz 帆布', en: '4 oz canvas', weave: 'plain', warpDen: 300, weftDen: 300, epi: 54, ppi: 42, a: '#2F3E7A', b: '#E4DED0', order: 'solid' },
+    { id: 'plain', zh: '平紋', en: 'Plain', weave: 'plain', warpDen: 150, weftDen: 150, epi: 110, ppi: 90, a: '#9A3B2C', b: '#E4DED0', order: 'solid' },
+    { id: 'basket', zh: '方平', en: 'Basket', weave: 'basket', warpDen: 200, weftDen: 200, epi: 84, ppi: 76, a: '#1B2547', b: '#E4DED0', order: 'solid' },
+    { id: 'twill22', zh: '2/2 斜紋', en: '2/2 twill', weave: 'twill22', warpDen: 200, weftDen: 200, epi: 96, ppi: 80, a: '#6B2433', b: '#E4DED0', order: 'solid' },
+    { id: 'twill31', zh: '3/1 丹寧', en: '3/1 denim', weave: 'twill31', warpDen: 300, weftDen: 450, epi: 72, ppi: 46, a: '#1D2B57', b: '#ECE8DE', order: 'solid' },
+    { id: 'satin5', zh: '五枚緞', en: '5-end satin', weave: 'satin5', warpDen: 75, weftDen: 150, epi: 220, ppi: 95, a: '#C9A04A', b: '#1B2547', order: 'solid' },
+    { id: 'satin8', zh: '八枚緞', en: '8-end satin', weave: 'satin8', warpDen: 50, weftDen: 150, epi: 250, ppi: 90, a: '#9DB4D8', b: '#141826', order: 'solid' },
+    { id: 'herringbone', zh: '人字紋', en: 'Herringbone', weave: 'herringbone', warpDen: 300, weftDen: 300, epi: 70, ppi: 60, a: '#26272C', b: '#E4DED0', order: 'solid' },
+    { id: 'houndstooth', zh: '千鳥格', en: 'Houndstooth', weave: 'houndstooth', warpDen: 300, weftDen: 300, epi: 64, ppi: 60, a: '#26272C', b: '#F3F2ED', order: '44' },
+    { id: 'ripstop', zh: '格子防裂', en: 'Ripstop', weave: 'ripstop', warpDen: 70, weftDen: 70, epi: 150, ppi: 130, a: '#5A6340', b: '#5A6340', order: 'ripstop' },
   ];
   const S = { preset: 'canvas4', pat: FC.weave('plain'), a: '', b: '', order: 'solid', warpDen: 300, weftDen: 300, epi: 54, ppi: 42, zoom: 50, jq: false, jqText: 'SUGI' };
   const listeners = [];
@@ -542,7 +656,7 @@ footer .wrap { display: grid; gap: 6px; }
   }
   function activePattern() { return S.jq && jqPat ? jqPat : S.pat; }
   function buildJacquard() {
-    const text = (S.jqText || '').trim() || '經緯';
+    const text = (S.jqText || '').trim() || tr('經緯', 'WARP');
     const cjk = /[㐀-鿿]/.test(text);
     const H = cjk ? 55 : 40;
     const mw = FC.measureJacquard(text, H);
@@ -551,7 +665,7 @@ footer .wrap { display: grid; gap: 6px; }
   }
   function rebuildJacquard() {
     if (!S.jq) return;
-    const text = (S.jqText || '').trim() || '經緯';
+    const text = (S.jqText || '').trim() || tr('經緯', 'WARP');
     buildJacquard(); changed();
     if (document.fonts && document.fonts.load) document.fonts.load('900 40px "Noto Sans TC"', text).then(() => { buildJacquard(); changed(); }).catch(() => {});
   }
@@ -602,8 +716,9 @@ footer .wrap { display: grid; gap: 6px; }
       [0.5, 1, 2, 5, 10].forEach(v => { if (v * pxPerMm < 140) mm = v; });
       $('#scaleBar').style.width = (mm * pxPerMm).toFixed(1) + 'px';
       $('#scaleLabel').textContent = mm + ' mm';
-      const name = S.jq ? '緞紋提花「' + (S.jqText || '經緯') + '」' : presetLabel();
-      $('#viewTag').textContent = `${name} · ${S.epi} × ${S.ppi} 根/吋 · ${S.warpDen}D × ${S.weftDen}D · 視野 ${(fov * 25.4).toFixed(1)} mm`;
+      const name = S.jq ? tr('緞紋提花「' + (S.jqText || '經緯') + '」', 'Satin damask “' + (S.jqText || 'WARP') + '”') : presetLabel();
+      $('#viewTag').textContent = tr(`${name} · ${S.epi} × ${S.ppi} 根/吋 · ${S.warpDen}D × ${S.weftDen}D · 視野 ${(fov * 25.4).toFixed(1)} mm`,
+        `${name} · ${S.epi} × ${S.ppi} ends/picks per in · ${S.warpDen}D × ${S.weftDen}D · field ${(fov * 25.4).toFixed(1)} mm`);
     }
     onChange(render);
     frame.addEventListener('pointermove', e => {
@@ -617,14 +732,16 @@ footer .wrap { display: grid; gap: 6px; }
   }
   function presetLabel() {
     const p = PRESETS.find(x => x.id === S.preset);
-    return p ? p.zh : '自訂組織';
+    return p ? tr(p.zh, p.en) : tr('自訂組織', 'Custom weave');
   }
 
   /* ---------- readout ---------- */
   function initReadout() {
-    const axes = ['結構穩定', '光澤', '覆蓋', '透氣', '柔軟懸垂'];
+    let axes = [];
     const svg = $('#radar'), cx = 110, cy = 104, R = 70;
     const ang = i => -Math.PI / 2 + i * 2 * Math.PI / 5;
+    function drawFrame() {
+    axes = tr('結構穩定,光澤,覆蓋,透氣,柔軟懸垂', 'Stability,Sheen,Cover,Airflow,Drape').split(',');
     let g = '';
     [0.25, 0.5, 0.75, 1].forEach(f => {
       g += `<polygon points="${axes.map((_, i) => [cx + Math.cos(ang(i)) * R * f, cy + Math.sin(ang(i)) * R * f].map(v => v.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="var(--rule-strong)" stroke-width="${f === 1 ? 1 : 0.6}"/>`;
@@ -637,6 +754,8 @@ footer .wrap { display: grid; gap: 6px; }
     g += '<polygon id="radarPoly" fill="var(--indigo-soft)" stroke="var(--indigo)" stroke-width="1.6" stroke-linejoin="round"/>';
     g += '<g id="radarDots"></g>';
     svg.innerHTML = g;
+    }
+    drawFrame(); langHooks.push(drawFrame);
     onChange(() => {
       const { st, sp } = derive();
       $('#oGsm').innerHTML = `${Math.round(sp.gsm)}<small>g/m²</small>`;
@@ -646,7 +765,7 @@ footer .wrap { display: grid; gap: 6px; }
       const pat = activePattern();
       $('#oRepeat').innerHTML = `${pat.w}<small>×</small> ${pat.h}`;
       $('#oDia').innerHTML = `${sp.dWarp.toFixed(2)}<small>/</small> ${sp.dWeft.toFixed(2)}<small>mm</small>`;
-      $('#classLabel').textContent = sp.oz < 3 ? '輕薄' : sp.oz < 7 ? '中量' : '厚重';
+      $('#classLabel').textContent = sp.oz < 3 ? tr('輕薄', 'Light') : sp.oz < 7 ? tr('中量', 'Medium') : tr('厚重', 'Heavy');
       const avgFloat = (st.warpFloat + st.weftFloat) / 2;
       const vals = [
         30 + 68 * st.interlace,
@@ -658,7 +777,7 @@ footer .wrap { display: grid; gap: 6px; }
       const pts = vals.map((v, i) => [cx + Math.cos(ang(i)) * R * v / 100, cy + Math.sin(ang(i)) * R * v / 100]);
       $('#radarPoly').setAttribute('points', pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' '));
       $('#radarDots').innerHTML = pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--indigo)"/>`).join('');
-      svg.setAttribute('aria-label', '結構指標：' + axes.map((a, i) => a + ' ' + Math.round(vals[i])).join('、'));
+      svg.setAttribute('aria-label', tr('結構指標：', 'Structure: ') + axes.map((a, i) => a + ' ' + Math.round(vals[i])).join(tr('、', ', ')));
     });
   }
 
@@ -681,17 +800,18 @@ footer .wrap { display: grid; gap: 6px; }
     PRESETS.forEach(p => {
       const b = document.createElement('button');
       b.className = 'preset'; b.dataset.id = p.id; b.setAttribute('aria-pressed', 'false');
-      b.innerHTML = '<canvas aria-hidden="true"></canvas><span>' + p.zh + '</span>';
+      b.innerHTML = '<canvas aria-hidden="true"></canvas><span></span>'; b.querySelector('span').textContent = tr(p.zh, p.en);
       b.addEventListener('click', () => { S.jq = false; $('#jqSwitch').setAttribute('aria-checked', 'false'); applyPreset(p.id); });
       box.appendChild(b);
     });
+    langHooks.push(() => $$('.preset').forEach(b => { const q = PRESETS.find(x => x.id === b.dataset.id); b.querySelector('span').textContent = tr(q.zh, q.en); }));
     const paint = () => $$('.preset').forEach(b => drawDraftIcon(b.querySelector('canvas'), FC.weave(PRESETS.find(p => p.id === b.dataset.id).weave)));
     paint();
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { paint(); changed(); });
     new MutationObserver(() => { paint(); changed(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     onChange(() => {
       $$('.preset').forEach(b => b.setAttribute('aria-pressed', String(!S.jq && b.dataset.id === S.preset)));
-      $('#presetName').textContent = S.jq ? '提花' : presetLabel();
+      $('#presetName').textContent = S.jq ? tr('提花', 'Jacquard') : presetLabel();
     });
   }
 
@@ -741,11 +861,13 @@ footer .wrap { display: grid; gap: 6px; }
       $('#oW').textContent = pat.w; $('#oH').textContent = pat.h;
       const st = FC.weaveStats(pat), warn = $('#draftWarn');
       const msgs = [];
-      if (!S.jq && st.looseWarp.length) msgs.push(`第 ${st.looseWarp.map(i => i + 1).join('、')} 根經紗在循環裡沒有交織`);
-      if (!S.jq && st.looseWeft.length) msgs.push(`第 ${st.looseWeft.map(i => i + 1).join('、')} 緯沒有交織`);
+      if (!S.jq && st.looseWarp.length) msgs.push(tr(`第 ${st.looseWarp.map(i => i + 1).join('、')} 根經紗在循環裡沒有交織`, `Warp end ${st.looseWarp.map(i => i + 1).join(', ')} never interlaces within the repeat`));
+      if (!S.jq && st.looseWeft.length) msgs.push(tr(`第 ${st.looseWeft.map(i => i + 1).join('、')} 緯沒有交織`, `Pick ${st.looseWeft.map(i => i + 1).join(', ')} never interlaces`));
       warn.hidden = !msgs.length;
-      warn.textContent = msgs.length ? msgs.join('；') + '，會浮成一整條，布面不穩。' : '';
-      $('#draftNote').textContent = S.jq ? '提花模式：底組織固定為五枚緞（字＝經面、底＝緯面），關掉提花即可編輯。' : '紅線框起來的是一個組織循環，旁邊三格是它的重複。';
+      warn.textContent = msgs.length ? msgs.join(tr('；', '; ')) + tr('，會浮成一整條，布面不穩。', '. It floats as one long thread and the cloth is unstable.') : '';
+      $('#draftNote').textContent = S.jq
+        ? tr('提花模式：底組織固定為五枚緞（字＝經面、底＝緯面），關掉提花即可編輯。', 'Jacquard mode: the base weave is fixed as 5-end satin (letters warp-faced, ground weft-faced). Turn jacquard off to edit.')
+        : tr('紅線框起來的是一個組織循環，旁邊三格是它的重複。', 'The red frame is one weave repeat. The other three squares are its repetitions.');
       cv.style.opacity = S.jq ? 0.55 : 1;
     }
     function cellAt(e) {
@@ -791,19 +913,24 @@ footer .wrap { display: grid; gap: 6px; }
   /* ---------- yarn & spec controls ---------- */
   function initControls() {
     function chips(box, key) {
-      DYES.forEach(([hex, name]) => {
+      DYES.forEach(([hex, zh, en]) => {
         const b = document.createElement('button');
-        b.className = 'chip'; b.style.background = hex; b.title = name; b.dataset.hex = hex;
-        b.setAttribute('aria-label', name); b.setAttribute('aria-pressed', 'false');
+        b.className = 'chip'; b.style.background = hex; b.dataset.hex = hex; b.dataset.zh = zh; b.dataset.en = en;
+        b.title = tr(zh, en);
+        b.setAttribute('aria-label', tr(zh, en)); b.setAttribute('aria-pressed', 'false');
         b.addEventListener('click', () => { S[key] = hex; changed(); });
         box.appendChild(b);
       });
       const inp = document.createElement('input');
-      inp.type = 'color'; inp.id = 'color' + key.toUpperCase(); inp.setAttribute('aria-label', '自訂顏色');
+      inp.type = 'color'; inp.id = 'color' + key.toUpperCase(); inp.setAttribute('aria-label', tr('自訂顏色', 'Custom colour'));
       inp.addEventListener('input', () => { S[key] = inp.value; changed(); });
       box.appendChild(inp);
     }
     chips($('#chipsA'), 'a'); chips($('#chipsB'), 'b');
+    langHooks.push(() => {
+      $$('.chip').forEach(c => { const nm = tr(c.dataset.zh, c.dataset.en); c.title = nm; c.setAttribute('aria-label', nm); });
+      $$('input[type="color"]').forEach(i => i.setAttribute('aria-label', tr('自訂顏色', 'Custom colour')));
+    });
     $$('#orderSeg button').forEach(b => b.addEventListener('click', () => { S.order = b.dataset.order; if (S.preset !== 'custom') S.preset = 'custom'; changed(); }));
     const sliders = [['sWarpDen', 'warpDen', v => v + 'D'], ['sWeftDen', 'weftDen', v => v + 'D'], ['sEpi', 'epi', v => v], ['sPpi', 'ppi', v => v], ['sZoom', 'zoom', () => '']];
     sliders.forEach(([id, key]) => $('#' + id).addEventListener('input', e => { S[key] = +e.target.value; if (key !== 'zoom') S.preset = S.preset === 'custom' ? 'custom' : S.preset; changed(); }));
@@ -823,10 +950,11 @@ footer .wrap { display: grid; gap: 6px; }
       $$('#chipsB .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.hex.toLowerCase() === S.b.toLowerCase())));
       $('#colorA').value = S.a; $('#colorB').value = S.b;
       $$('#orderSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.order === S.order)));
-      $('#orderName').textContent = S.jq ? '提花用單色' : { solid: '經緯各一色', 44: '經緯都 4 深 4 淺', ripstop: '每 9 根加一對強化紗' }[S.order];
+      $('#orderName').textContent = S.jq ? tr('提花用單色', 'Jacquard uses one colour each')
+        : { solid: tr('經緯各一色', 'One colour each way'), 44: tr('經緯都 4 深 4 淺', '4 dark, 4 light, both ways'), ripstop: tr('每 9 根加一對強化紗', 'A reinforcing pair every 9 yarns') }[S.order];
       $('#vWarpDen').textContent = S.warpDen + 'D'; $('#vWeftDen').textContent = S.weftDen + 'D';
       $('#vEpi').textContent = S.epi; $('#vPpi').textContent = S.ppi;
-      $('#vZoom').textContent = '視野寬 ' + (fovInches() * 25.4).toFixed(1) + ' mm';
+      $('#vZoom').textContent = tr('視野寬 ', 'Field ') + (fovInches() * 25.4).toFixed(1) + ' mm';
     });
   }
   function syncControls() {
@@ -1117,15 +1245,29 @@ void main(){
       const t = el('text', { x: p.anchor[0], y: p.anchor[1] }, mk); t.textContent = String(i + 1);
       const li = document.createElement('li');
       li.dataset.id = p.id; li.tabIndex = 0;
-      li.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')}</span><b>${p.zh}<small>${p.en}</small></b><span>${p.mat}</span>`;
+      li.innerHTML = '<span class="n">' + String(i + 1).padStart(2, '0') + '</span><b></b><span class="m"></span>';
       legend.appendChild(li);
     });
+    function relabelLegend() {
+      $$('#legend li').forEach(li => {
+        const q = parts.find(x => x.id === li.dataset.id);
+        li.querySelector('b').innerHTML = tr(q.zh, q.en) + '<small>' + tr(q.en, q.zh) + '</small>';
+        li.querySelector('.m').textContent = tr(q.mat, q.matEn);
+      });
+    }
+    relabelLegend(); langHooks.push(relabelLegend);
     // paint order (legend order is bottom-up anatomy, not z-order)
     ['tongue', 'insole', 'midsole', 'outsole', 'upper', 'heel', 'toecap', 'collar', 'tab', 'saddle', 'eyestay', 'laces'].forEach(id => svg.appendChild(groups[id]));
-    const detail = $('#partDetail'), detailDefault = detail.textContent;
+    const detail = $('#partDetail');
+    let curPart = null;
+    function showDetail() {
+      const q = parts.find(x => x.id === curPart);
+      detail.innerHTML = q ? '<b>' + tr(q.zh, q.en) + '</b>　' + tr(q.mat + '。' + q.note + '。', q.matEn + '. ' + q.noteEn + '.')
+        : tr('游標移到鞋子或下方清單，看每個部件用什麼材料。', 'Point at the shoe or the list below to see what each part is made of.');
+    }
+    langHooks.push(showDetail);
     function focus(id) {
-      const p = parts.find(x => x.id === id);
-      detail.innerHTML = p ? `<b>${p.zh}</b>　${p.mat}。${p.note}。` : detailDefault;
+      curPart = id; showDetail();
       svg.classList.toggle('focusing', !!id);
       parts.forEach(p => groups[p.id].classList.toggle('on', p.id === id));
       $$('#legend li').forEach(li => li.classList.toggle('on', li.dataset.id === id));
@@ -1144,6 +1286,8 @@ void main(){
     }
     // scroll-linked explode on large screens, button elsewhere
     const track = $('#anatTrack'), btn = $('#explodeBtn');
+    const btnLabel = open => tr(open ? '組回去' : '拆開', open ? 'Put back' : 'Explode');
+    langHooks.push(() => { btn.textContent = btnLabel(btn.getAttribute('aria-pressed') === 'true'); });
     const mq = matchMedia('(min-width: 980px) and (min-height: 700px)');
     let manual = 0, tweenRaf = 0;
     function scrolly() { return mq.matches && !reduce; }
@@ -1152,7 +1296,7 @@ void main(){
       const r = track.getBoundingClientRect(), span = r.height - innerHeight;
       const p = clamp(-r.top / Math.max(1, span), 0, 1);
       const e = smooth(0.06, 0.42, p) * (1 - smooth(0.78, 1, p));
-      setExplode(e); btn.setAttribute('aria-pressed', String(e > 0.5)); btn.textContent = e > 0.5 ? '組回去' : '拆開';
+      setExplode(e); btn.setAttribute('aria-pressed', String(e > 0.5)); btn.textContent = btnLabel(e > 0.5);
     }
     function tweenTo(to) {
       cancelAnimationFrame(tweenRaf);
@@ -1163,7 +1307,7 @@ void main(){
         if (k < 1) tweenRaf = requestAnimationFrame(tick);
       };
       tweenRaf = requestAnimationFrame(tick);
-      btn.setAttribute('aria-pressed', String(to > 0.5)); btn.textContent = to > 0.5 ? '組回去' : '拆開';
+      btn.setAttribute('aria-pressed', String(to > 0.5)); btn.textContent = btnLabel(to > 0.5);
     }
     btn.addEventListener('click', () => {
       if (scrolly()) {
@@ -1176,13 +1320,18 @@ void main(){
     mq.addEventListener('change', layout); layout();
     addEventListener('scroll', onScroll, { passive: true });
     if (!scrolly()) visibility(track, v => { if (v && manual === 0 && !initShoe.auto) { initShoe.auto = true; setTimeout(() => tweenTo(1), 500); } });
+    function noteText() {
+      return tr('鞋面＝實驗室目前的布：', 'The upper uses the lab fabric: ')
+        + (S.jq ? tr('緞紋提花「' + (S.jqText || '經緯') + '」', 'satin damask “' + (S.jqText || 'WARP') + '”') : presetLabel()) + tr('。', '.');
+    }
+    langHooks.push(() => { $('#anatNote').textContent = noteText(); });
     return {
       setFabric(url, cellsX, cellsY) {
         const tw = cellsX * 6.2, th = tw * 768 / 1024;
         pat.setAttribute('width', tw.toFixed(1)); pat.setAttribute('height', th.toFixed(1));
         patImg.setAttribute('width', tw.toFixed(1)); patImg.setAttribute('height', th.toFixed(1));
         patImg.setAttribute('href', url);
-        $('#anatNote').textContent = '鞋面＝實驗室目前的布：' + (S.jq ? '緞紋提花「' + (S.jqText || '經緯') + '」' : presetLabel()) + '。';
+        $('#anatNote').textContent = noteText();
       },
     };
   }
@@ -1205,6 +1354,10 @@ void main(){
   }
 
   /* =========================================================== boot */
+  LANG = detectLang();
+  collectStatic();
+  $('#langZh').addEventListener('click', () => setLang('zh'));
+  $('#langEn').addEventListener('click', () => setLang('en'));
   const P0 = PRESETS[0];
   Object.assign(S, { a: P0.a, b: P0.b });
   initPresets(); initDraft(); initControls(); initReadout();
@@ -1216,7 +1369,17 @@ void main(){
   initSteps();
   const fv = $('#filmVideo');
   fv.addEventListener('error', () => { fv.hidden = true; $('#noFilm').hidden = false; });
+  langHooks.push(() => {
+    const src = LANG === 'en' ? 'warp-weft-30s-en.mp4' : 'warp-weft-30s.mp4';
+    if (fv.getAttribute('src') === src) return;
+    const wasPlaying = !fv.paused, at = fv.currentTime;
+    fv.hidden = false; $('#noFilm').hidden = true;
+    fv.poster = LANG === 'en' ? 'film-poster-en.jpg' : 'film-poster.jpg';
+    fv.src = src; fv.load();
+    if (at > 0) fv.addEventListener('loadedmetadata', () => { fv.currentTime = Math.min(at, fv.duration || at); if (wasPlaying) fv.play().catch(() => {}); }, { once: true });
+  });
   applyPreset('canvas4');
+  applyLang();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(changed);
 })();
 </script>
